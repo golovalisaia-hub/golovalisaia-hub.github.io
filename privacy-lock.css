@@ -12,7 +12,7 @@
 .privacy-link { min-height:42px; border:0; background:none; color:#b6c7bd; padding:4px 0; text-decoration:underline; text-underline-offset:3px; font-size:.84rem; }
 #privacy-status { color:#f7d4ad; margin:4px 0 0; min-height:1.3em; font-size:.84rem; }
 .privacy-shell form label { display:grid; gap:7px; margin:0 0 12px; font-size:.9rem; }
-.privacy-shell form input { padding:9px 10px; border-radius:10px; border:1px solid #637068; min-height:46px; color:#f4f5ef; background:#303a34; }
+.privacy-shell form input { width:100%; min-width:0; font-size:1rem; padding:9px 10px; border-radius:10px; border:1px solid #637068; min-height:46px; color:#f4f5ef; background:#303a34; }
 .privacy-shell p { line-height:1.48; }
 .privacy-primary { width:100%; border:1px solid #d6eb8a; min-height:47px; border-radius:11px; background:#d6eb8a; color:#243118; font-weight:730; margin:8px 0; }
 #privacy-recovery-value { display:block; margin:10px 0; padding:12px; border:1px solid #637068; border-radius:10px; color:#e6f6d3; background:#303a34; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/field-journal.css">
   <link rel="stylesheet" href="/forestry-tools.css">
   <link rel="stylesheet" href="/privacy-lock.css">
+  <link rel="stylesheet" href="/mobile-maps.css">
   <script type="module" src="/region-app.js"></script>
 </head>
 <body>
@@ -74,16 +75,23 @@
             <button id="about" class="icon-button about-button" type="button" aria-label="Установка и приватность" title="Установка и приватность">?</button>
           </div>
         </div>
-        <div class="search">
-          <span class="icon icon-search" aria-hidden="true"></span>
-          <input id="region-search" type="search" autocomplete="off" spellcheck="false" placeholder="Поиск адреса или координат" aria-label="Найти место в Мурманской области">
-          <button id="clear-search" class="icon-button clear" type="button" aria-label="Очистить поиск" hidden>×</button>
-        </div>
       </header>
 
       <section class="library region-library" aria-label="Мурманская область" data-expanded="false">
-        <button id="sheet-toggle" class="sheet-toggle" type="button" aria-label="Развернуть панель карты" aria-expanded="false"><span></span></button>
-        <section class="panel-content">
+        <button id="sheet-toggle" class="sheet-toggle" type="button" aria-label="Развернуть панель карты" aria-expanded="false" aria-controls="map-panel-content"><span></span></button>
+        <div class="search-area">
+          <div class="search">
+            <span class="icon icon-search" aria-hidden="true"></span>
+            <input id="region-search" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="Поиск адреса или координат" aria-label="Найти место в Мурманской области">
+            <button id="clear-search" class="icon-button clear" type="button" aria-label="Очистить поиск" hidden>×</button>
+          </div>
+          <button id="offline-panel" class="offline-shortcut" type="button" aria-label="Офлайн-карта" aria-expanded="false" aria-controls="map-panel-content"><span class="icon icon-download" aria-hidden="true"></span><span>Офлайн</span></button>
+        </div>
+        <section id="map-panel-content" class="panel-content">
+          <div id="shell-notice" class="notice" data-error="true" hidden>
+            <p id="shell-status" role="status"></p>
+            <button id="retry-shell" class="inline-button" type="button">Повторить подготовку</button>
+          </div>
           <div id="notice" class="notice" aria-live="polite" hidden></div>
           <article class="region-card">
             <div class="region-card-heading">
@@ -131,8 +139,8 @@
       </section>
       <nav class="mode-switch field-nav" aria-label="Полевые инструменты">
         <button id="track-open" type="button" aria-haspopup="dialog" aria-controls="track-dialog"><span class="icon icon-track" aria-hidden="true"></span>Мой путь</button>
-        <button id="forestry-open" type="button" aria-haspopup="dialog">Лес и измерения</button>
-        <button id="safety-open" type="button" aria-haspopup="dialog" aria-controls="field-safety">Безопасность</button>
+        <button id="forestry-open" type="button" aria-label="Лес и измерения" aria-haspopup="dialog"><span class="icon icon-tree" aria-hidden="true"></span><span class="forestry-label">Лес и измерения</span></button>
+        <button id="safety-open" type="button" aria-haspopup="dialog" aria-controls="field-safety"><span class="icon icon-shield" aria-hidden="true"></span>Безопасность</button>
       </nav>
       <footer class="sidebar-foot">
         <button id="install" type="button" class="install-button"><span class="icon icon-phone" aria-hidden="true"></span> На экран «Домой»</button>
@@ -149,7 +157,7 @@
         </div>
         <div class="map-side">
           <span class="connection" id="connection"><span aria-hidden="true"></span><span id="connection-text">В сети</span></span>
-          <button id="map-layers" class="map-layer-button" type="button" aria-label="Слои карты" aria-haspopup="dialog" aria-controls="layers-dialog"><span class="icon icon-layers" aria-hidden="true"></span>Слои</button>
+          <button id="map-layers" class="map-layer-button" type="button" aria-label="Слои карты" aria-haspopup="dialog" aria-controls="layers-dialog"><span class="icon icon-layers" aria-hidden="true"></span><span class="layer-label">Слои</span></button>
         </div>
       </div>
       <div id="map-loading" class="map-message" role="status">Открываем карту…</div>

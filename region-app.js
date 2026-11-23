@@ -14,6 +14,10 @@ import {TRACK_FIX_MAX_AGE_MS} from './track-geometry.js';
 const el = id => document.getElementById(id);
 const search = el('region-search');
 const library = document.querySelector('.library');
+const mapPanel = el('map-panel-content');
+const workers = navigator.serviceWorker;
+const portraitPhone = window.matchMedia('(max-width:680px) and (orientation:portrait)');
+const visibleViewport = window.visualViewport;
 const results = el('places');
 const mapCanvas = el('map');
 const mapButtons = ['zoom-in','zoom-out','fit-region','my-position','map-north','pick-destination'].map(el);
@@ -60,6 +64,8 @@ let navigationManifest;
 let walkingArchive;
 let walkingManifest;
 let shellVersion = '';
+let shellTimer;
+let registeringShell = false;
 let preview;
 let map;
 let mapRendered = false;
@@ -192,10 +198,28 @@ function size(bytes) {
   return format.format(bytes / 1024 / 1024) + ' МБ';
 }
 
-function sheet(expanded) {
+function sheet(expanded, panel = '') {
   library.dataset.expanded = String(expanded);
+  library.dataset.panel = expanded ? panel : '';
   el('sheet-toggle').setAttribute('aria-expanded', String(expanded));
   el('sheet-toggle').setAttribute('aria-label', expanded ? 'Свернуть панель карты' : 'Развернуть панель карты');
+  el('offline-panel').setAttribute('aria-expanded', String(expanded && panel === 'offline'));
+}
+
+function positionSearchAboveKeyboard() {
+  if (!visibleViewport) return;
+  // Safari moves and shrinks the visual viewport when its keyboard opens.
+  const keyboard = portraitPhone.matches && document.activeElement === search &&
+    Math.abs(visibleViewport.scale - 1) < .01 &&
+    document.documentElement.clientHeight - visibleViewport.height > 120;
+  workspace.dataset.keyboard = String(keyboard);
+  if (keyboard) {
+    workspace.style.setProperty('--keyboard-height', Math.floor(visibleViewport.height) + 'px');
+    workspace.style.setProperty('--keyboard-offset', Math.round(visibleViewport.offsetTop) + 'px');
+  } else {
+    workspace.style.removeProperty('--keyboard-height');
+    workspace.style.removeProperty('--keyboard-offset');
+  }
 }
 
 function setNotice(text = '', error = false) {
@@ -672,29 +696,70 @@ function showPlaces(places) {
   el('empty').hidden = Boolean(places.length);
 }
 
-async function prepareShell() {
-  if (!('serviceWorker' in navigator)) throw new Error('Service workers unavailable');
-  await navigator.serviceWorker.register('/sw.js', {updateViaCache:'none'});
-  if (!navigator.serviceWorker.controller) {
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        navigator.serviceWorker.removeEventListener('controllerchange', check);
-        reject(new Error('Offline installation did not complete'));
-      }, 35000);
-      function check() {
-        if (!navigator.serviceWorker.controller) return;
-        clearTimeout(timer);
-        navigator.serviceWorker.removeEventListener('controllerchange', check);
-        resolve();
-      }
-      navigator.serviceWorker.addEventListener('controllerchange', check);
-      check();
-    });
+function setShellNotice(message = '', canRetry = true) {
+  el('shell-status').textContent = message;
+  el('retry-shell').hidden = !canRetry;
+  el('shell-notice').hidden = !message;
+  library.dataset.shellError = String(Boolean(message));
+}
+
+async function readShellController() {
+  if (offlineReady || !workers?.controller) return;
+  const names = await caches.keys().catch(() => []);
+  const installed = names.find(name => name.startsWith('quiet-shell-'));
+  clearTimeout(shellTimer);
+  if (!installed) {
+    setShellNotice('Файлы офлайн-запуска отсутствуют в хранилище браузера. Повтори подготовку с интернетом.');
+    return;
   }
+  shellVersion = installed;
   offlineReady = true;
-  shellVersion = (await caches.keys().catch(() => [])).find(name => name.startsWith('quiet-shell-')) || '';
+  setShellNotice();
   renderDownload();
   void layerPanel.load();
+}
+
+async function prepareShell() {
+  if (offlineReady || registeringShell) return;
+  if (!workers || !window.isSecureContext) {
+    setShellNotice('Офлайн-режим недоступен в этом окне. Открой адрес сайта в Safari или Chrome.', false);
+    return;
+  }
+  registeringShell = true;
+  clearTimeout(shellTimer);
+  setShellNotice();
+  shellTimer = setTimeout(() => {
+    if (!offlineReady) setShellNotice(navigator.onLine
+      ? 'Подготовка офлайн-режима продолжается. Оставь приложение открытым.'
+      : 'Для завершения подготовки офлайн-режима подключись к интернету.');
+  },35000);
+  try {
+    const registration = await workers.register('/sw.js', {updateViaCache:'none'});
+    const installing = registration.installing;
+    if (installing) {
+      function reportFailure() {
+        if (!['redundant','activated'].includes(installing.state)) return;
+        installing.removeEventListener('statechange', reportFailure);
+        if (installing.state === 'redundant' && !workers.controller) {
+          clearTimeout(shellTimer);
+          setShellNotice('Не удалось сохранить файлы офлайн-запуска. Повтори подготовку.');
+        }
+      }
+      installing.addEventListener('statechange', reportFailure);
+      reportFailure();
+    }
+    await readShellController();
+  } catch (error) {
+    clearTimeout(shellTimer);
+    if (offlineReady) return;
+    const blocked = error.name === 'SecurityError' || error.name === 'NotAllowedError';
+    setShellNotice(blocked
+      ? 'Браузер запретил сохранение приложения. Открой адрес сайта в Safari или Chrome и повтори подготовку.'
+      : navigator.onLine ? 'Не удалось подготовить офлайн-режим. Повтори подготовку.'
+        : 'Подключись к интернету и повтори подготовку офлайн-режима.');
+  } finally {
+    registeringShell = false;
+  }
 }
 
 async function beginDownload(walking = false, requireDetail = true) {
@@ -738,7 +803,13 @@ async function beginDownload(walking = false, requireDetail = true) {
   }
 }
 
-el('download-region').addEventListener('click', () => void beginDownload());
+el('download-region').addEventListener('click', () => {
+  if (portraitPhone.matches) {
+    sheet(true,'offline');
+    mapPanel.scrollTop = 0;
+  }
+  void beginDownload();
+});
 el('enable-navigation').addEventListener('click', () => void beginDownload(navigation.mode() === 'walk',false));
 el('pause-download').addEventListener('click', () => {
   el('pause-download').disabled = true;
@@ -781,10 +852,28 @@ el('confirm-delete').addEventListener('click', async () => {
     void renderPlaces();
   }
 });
-el('sheet-toggle').addEventListener('click', () => sheet(library.dataset.expanded !== 'true'));
+el('sheet-toggle').addEventListener('click', () => {
+  const expanded = library.dataset.expanded !== 'true';
+  if (!expanded) search.blur();
+  sheet(expanded);
+});
+el('offline-panel').addEventListener('click', () => {
+  const expanded = el('offline-panel').getAttribute('aria-expanded') !== 'true';
+  search.blur();
+  sheet(expanded,'offline');
+  if (expanded) mapPanel.scrollTop = 0;
+});
+el('retry-shell').addEventListener('click', () => void prepareShell());
 el('clear-search').addEventListener('click', () => { search.value = ''; void renderPlaces(); search.focus(); });
 search.addEventListener('input', () => { void renderPlaces(); sheet(true); });
-search.addEventListener('focus', () => sheet(true));
+search.addEventListener('focus', () => {
+  sheet(true);
+  mapPanel.scrollTop = 0;
+  positionSearchAboveKeyboard();
+});
+search.addEventListener('blur', positionSearchAboveKeyboard);
+visibleViewport?.addEventListener('resize', positionSearchAboveKeyboard);
+visibleViewport?.addEventListener('scroll', positionSearchAboveKeyboard);
 search.addEventListener('keydown', event => {
   if (event.key !== 'Enter') return;
   const first = results.querySelector('button');
@@ -806,6 +895,7 @@ el('my-position').addEventListener('click', togglePosition);
 el('vault-link').addEventListener('click', event => {
   if (offlineReady) return;
   event.preventDefault();
+  sheet(true,'offline');
   setNotice('Сейф откроется, когда приложение подготовит файлы для офлайн-работы.');
 });
 function clearPrivateSession() {
@@ -828,7 +918,9 @@ new ResizeObserver(() => map?.resize()).observe(mapCanvas);
 
 updateConnection();
 renderDownload();
-void prepareShell().catch(() => setNotice('Для первого запуска открой приложение в Safari с интернетом.', true));
+workers?.addEventListener('controllerchange', () => void readShellController());
+if (workers?.controller) void readShellController();
+else void prepareShell();
 
 function buildSearchIndex() {
   const byTitle = new Map();
