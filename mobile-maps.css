@@ -77,7 +77,7 @@
   .brand-actions .about-button:hover { background:#395c4d; }
   .brand-row :focus-visible { outline-color:#dff0a2; outline-offset:-2px; }
 
-  .map-area { grid-area:1 / 1; }
+  .map-area { grid-area:1 / 1; display:flex; flex-direction:column; justify-content:flex-end; align-items:flex-end; }
   .map-top {
     inset:var(--control-top) var(--edge-right) auto var(--edge-left);
     display:grid;
@@ -93,16 +93,18 @@
   .map-side { grid-column:2; gap:5px; }
   .connection { gap:5px; padding:6px 7px; border-radius:9px; font-size:.71rem; }
   .connection>span:first-child { flex:none; width:6px; height:6px; }
-  .map-actions { right:var(--edge-right); bottom:39px; gap:6px; }
+  .map-actions { position:relative; inset:auto; flex:none; margin:0 var(--edge-right) 7px 0; gap:6px; }
   #my-position { background:#ebf5bc; border-color:#b7c985; color:#1b4336; }
   #my-position[aria-pressed=true] { background:#e3f2ff; border-color:#8db9ea; color:#176ab9; }
   .map-credit {
-    right:var(--edge-right);
-    bottom:5px;
+    position:relative;
+    inset:auto;
+    flex:none;
+    margin:0 var(--edge-right) 5px 0;
     max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 89px);
   }
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin-left:var(--edge-left); margin-bottom:8px; }
-  .position-message { left:var(--edge-left); bottom:39px; max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 52px); }
+  .position-message { left:var(--edge-left); bottom:54px; max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 52px); }
   .track-hud, .turn-banner, .bearing-hud {
     left:var(--edge-left);
     top:calc(var(--control-top) + 53px);
@@ -215,7 +217,7 @@
     max-block-size:none;
   }
   .workspace[data-keyboard=true] .map-top { top:8px; }
-  .workspace[data-keyboard=true] .map-actions { visibility:hidden; }
+  .workspace[data-keyboard=true] .map-actions { display:none; }
 
   @container (max-height:500px) {
     .map-actions { grid-template-rows:repeat(3, 44px); grid-auto-flow:column; }
@@ -223,9 +225,9 @@
     .position-message { max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 104px); }
   }
   @container (max-height:405px) and (min-width:305px) {
-    .map-actions { grid-template-rows:auto; bottom:35px; justify-content:end; gap:5px; }
+    .map-actions { grid-template-rows:auto; justify-content:end; gap:5px; }
     .zoom-buttons { grid-row:auto; }
-    .position-message { bottom:87px; }
+    .position-message { bottom:105px; }
   }
 }
 
