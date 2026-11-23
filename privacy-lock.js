@@ -18,6 +18,7 @@ export function createPrivacyLock({onUnlock,onLock}) {
   const screen = id('privacy-screen');
   const form = id('privacy-form');
   const recoveryCard = id('privacy-recovery-card');
+  const setupButton = id('privacy-setup-open');
   const workspace = document.querySelector('.workspace');
   const status = id('privacy-status');
   const math = createCalculator();
@@ -30,7 +31,6 @@ export function createPrivacyLock({onUnlock,onLock}) {
   let busy = false;
   let revision = 0;
   let recovering = false;
-  let pendingKey;
   let nextAttempt;
   let checking = false;
   let idleTimer;
@@ -51,11 +51,16 @@ export function createPrivacyLock({onUnlock,onLock}) {
     id('privacy-recovery-value').textContent = '';
     recoveryCard.hidden = true;
     calculator.hidden = false;
-    pendingKey = undefined;
+    setupButton.hidden = configured || (!security && !securityError);
     math.reset();
     display();
   }
-  function showAccessForm() {
+  function returnToCalculator() {
+    showCalculator();
+    message();
+    screen.focus({preventScroll:true});
+  }
+  function showAccessForm(focusInput = true) {
     if (busy || unlocked || calculator.hidden) return;
     revision += 1;
     nextAttempt = undefined;
@@ -65,12 +70,18 @@ export function createPrivacyLock({onUnlock,onLock}) {
     display();
     id('privacy-recovery-label').hidden = !recovering;
     id('privacy-recovery').required = recovering;
-    id('privacy-form-title').textContent = recovering ? 'Восстановление доступа' : 'Код для карт';
-    id('privacy-submit').textContent = recovering ? 'Сменить код' : 'Создать код';
+    id('privacy-form-title').textContent = recovering ? 'Восстановление доступа' : 'Придумай PIN для карт';
+    id('privacy-form-intro').textContent = recovering
+      ? 'Введи сохранённый код восстановления и новый PIN из 4–20 цифр. Для входа набери новый PIN на калькуляторе и нажми «=».'
+      : 'Введи PIN из 4–20 цифр дважды. Затем набери его на калькуляторе и нажми «=».';
+    id('privacy-submit').textContent = recovering ? 'Сменить PIN' : 'Создать PIN';
+    id('privacy-submit').disabled = !security;
+    id('privacy-cancel').textContent = recovering ? 'Отмена' : 'К калькулятору';
     form.hidden = false;
     if (securityError) report(securityError);
     else message();
-    id(recovering ? 'privacy-recovery' : 'privacy-pin').focus();
+    if (focusInput) id(recovering ? 'privacy-recovery' : 'privacy-pin').focus();
+    else form.focus({preventScroll:true});
   }
   function activity() {
     if (!unlocked) return;
@@ -99,9 +110,7 @@ export function createPrivacyLock({onUnlock,onLock}) {
     workspace.inert = true;
     workspace.hidden = true;
     screen.hidden = false;
-    showCalculator();
-    message();
-    screen.focus({preventScroll:true});
+    returnToCalculator();
     if (wasUnlocked) onLock();
   }
   function report(error) {
@@ -129,9 +138,12 @@ export function createPrivacyLock({onUnlock,onLock}) {
 
   function press(key) {
     if (unlocked || calculator.hidden) return;
-    revision += 1;
-    nextAttempt = undefined;
     const candidate = math.press(key);
+    // A second press of equals on a submitted number leaves its check pending.
+    if (key !== '=' || candidate !== null) {
+      revision += 1;
+      nextAttempt = undefined;
+    }
     display();
     if (isFieldUnlockPin(candidate)) void tryPin(candidate);
   }
@@ -140,7 +152,12 @@ export function createPrivacyLock({onUnlock,onLock}) {
   const configuration = openFieldSecurity().then(async stored => {
     configured = await stored.configured();
     security = stored;
-  }).catch(error => { securityError = error; });
+    setupButton.hidden = configured;
+    if (!configured && !document.hidden) showAccessForm(false);
+  }).catch(error => {
+    securityError = error;
+    setupButton.hidden = configured;
+  });
   for (const button of calculator.querySelectorAll('[data-key]')) {
     button.addEventListener('click',() => press(button.dataset.key));
   }
@@ -171,16 +188,20 @@ export function createPrivacyLock({onUnlock,onLock}) {
   for (const event of ['pointerdown','keydown','touchstart']) {
     document.addEventListener(event,activity,{passive:true});
   }
-  id('privacy-cancel').addEventListener('click',() => { if (!busy) { showCalculator(); message(); } });
-  id('privacy-enter').addEventListener('click',() => { if (pendingKey) unlock(pendingKey); });
+  setupButton.addEventListener('click',() => void configuration.then(() => {
+    if (!configured) showAccessForm();
+  }));
+  id('privacy-cancel').addEventListener('click',() => { if (!busy) returnToCalculator(); });
+  id('privacy-continue').addEventListener('click',() => { if (!recoveryCard.hidden) returnToCalculator(); });
   id('privacy-copy-recovery').addEventListener('click',async () => {
-    const value = id('privacy-recovery-value').textContent;
-    if (!pendingKey || !value) return;
+    const output = id('privacy-recovery-value');
+    const value = output.textContent;
+    if (recoveryCard.hidden || !value) return;
     try {
       await navigator.clipboard.writeText(value);
-      if (pendingKey) message('Код скопирован.');
+      if (output.textContent === value) message('Код скопирован.');
     } catch {
-      if (pendingKey) message('Выдели и скопируй код вручную.');
+      if (output.textContent === value) message('Выдели и скопируй код вручную.');
     }
   });
   id('lock-now').addEventListener('click',lock);
@@ -195,21 +216,25 @@ export function createPrivacyLock({onUnlock,onLock}) {
     message('Готовим защиту…');
     try {
       if (recovering) {
-        const key = await security.recover(id('privacy-recovery').value,pin);
-        if (current === revision) unlock(key);
+        await security.recover(id('privacy-recovery').value,pin);
+        if (current === revision) returnToCalculator();
         return;
       }
-      const {key,recoveryCode} = await security.setup(pin);
+      const {recoveryCode} = await security.setup(pin);
       configured = true;
+      setupButton.hidden = true;
       if (current !== revision) return;
       form.reset();
       form.hidden = true;
       recoveryCard.hidden = false;
       id('privacy-recovery-value').textContent = recoveryCode;
-      pendingKey = key;
       message();
-      id('privacy-enter').focus();
+      id('privacy-continue').focus();
     } catch (error) {
+      if (error?.code === 'already-configured') {
+        configured = true;
+        setupButton.hidden = true;
+      }
       if (current === revision) report(error);
     } finally {
       busy = false;

@@ -43,22 +43,23 @@
           <button type="button" data-key="0">0</button><button type="button" data-key="." aria-label="Десятичная запятая">,</button>
           <button type="button" data-key="=" class="calc-operation">=</button>
         </div>
+        <button id="privacy-setup-open" class="privacy-link" type="button" hidden>Настроить PIN</button>
       </div>
-      <form id="privacy-form" hidden>
-        <h1 id="privacy-form-title">Код для карт</h1>
-        <p>Выбери код из 4–20 цифр для скачанных карт и полевых записей. Длинный случайный код лучше защищает данные.</p>
+      <form id="privacy-form" aria-labelledby="privacy-form-title" tabindex="-1" hidden>
+        <h1 id="privacy-form-title">Придумай PIN для карт</h1>
+        <p id="privacy-form-intro">Введи PIN из 4–20 цифр дважды. Затем набери его на калькуляторе и нажми «=».</p>
         <label id="privacy-recovery-label" hidden>Код восстановления<input id="privacy-recovery" type="password" autocomplete="off" spellcheck="false"></label>
-        <label>Новый код<input id="privacy-pin" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
-        <label>Повтори код<input id="privacy-pin-confirm" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
-        <button id="privacy-submit" class="privacy-primary" type="submit">Создать код</button>
-        <button id="privacy-cancel" class="privacy-link" type="button">Отмена</button>
+        <label>Новый PIN<input id="privacy-pin" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
+        <label>Повтори PIN<input id="privacy-pin-confirm" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
+        <button id="privacy-submit" class="privacy-primary" type="submit">Создать PIN</button>
+        <button id="privacy-cancel" class="privacy-link" type="button">К калькулятору</button>
       </form>
       <section id="privacy-recovery-card" hidden>
         <h1>Сохрани код восстановления</h1>
-        <p>Он нужен, если забудешь числовой код. Запиши его отдельно от телефона.</p>
+        <p>Запиши его отдельно от телефона. Для входа набери свой PIN на калькуляторе и нажми «=».</p>
         <output id="privacy-recovery-value"></output>
         <button id="privacy-copy-recovery" class="privacy-link" type="button">Скопировать код восстановления</button>
-        <button id="privacy-enter" class="privacy-primary" type="button">Открыть карты</button>
+        <button id="privacy-continue" class="privacy-primary" type="button">К калькулятору</button>
       </section>
       <p id="privacy-status" role="status"></p>
     </div>
