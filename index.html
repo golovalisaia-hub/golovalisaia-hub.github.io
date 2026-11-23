@@ -156,7 +156,10 @@
       <div class="map-top">
         <div class="map-caption">
           <span class="caption-pin" aria-hidden="true">+</span>
-          <div><strong id="map-title">Мурманская область</strong><span id="map-state">Обзор области</span></div>
+          <div>
+            <strong id="map-title">Мурманская область</strong><span id="map-state">Обзор области</span>
+            <button id="photo-overview" class="map-photo-overview" type="button" aria-label="Схема на крупном плане. Отдалить до снимка" hidden>Схема · к снимку</button>
+          </div>
         </div>
         <div class="map-side">
           <span class="connection" id="connection"><span aria-hidden="true"></span><span id="connection-text">В сети</span></span>
@@ -345,7 +348,7 @@
       <div><h3>Снимки со спутника</h3><p id="satellite-status">Подготовка…</p></div>
       <button id="download-satellite" class="layer-download" type="button" aria-label="Скачать спутниковые снимки" disabled>Скачать</button>
       <button id="remove-satellite" class="layer-remove" type="button" hidden aria-label="Удалить скачанные снимки">Удалить</button>
-      <p class="layer-description">Региональные снимки. Гибрид показывает дороги, подписи и контуры домов. Детальные снимки требуют отдельного источника с правом офлайн-хранения.</p>
+      <p class="layer-description">Снимки помогают увидеть местность в целом. При приближении появляются дороги и подписи, затем открывается подробная схема.</p>
     </div>
     <div id="layer-transfer" class="progress-card layer-progress" hidden>
       <p id="layer-progress-label" aria-live="polite"></p>

@@ -101,7 +101,7 @@
     inset:auto;
     flex:none;
     margin:0 var(--edge-right) 5px 0;
-    max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 89px);
+    max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 104px);
   }
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin-left:var(--edge-left); margin-bottom:8px; }
   .position-message { left:var(--edge-left); bottom:54px; max-inline-size:calc(100% - var(--edge-left) - var(--edge-right) - 52px); }

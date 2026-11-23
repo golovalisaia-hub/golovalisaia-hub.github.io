@@ -104,6 +104,7 @@ const layerPanel = createLayerPanel({
   isReady:() => Boolean(offlineReady && mapStorage),
   isBaseDownloading:() => Boolean(download || removingDownload),
   downloadChanged:renderDownload,
+  onModeSelected:collapseDownloadedMapPanel,
 });
 const trackPanel = createTrackPanel({
   getFix:() => position?.sample,
@@ -247,6 +248,14 @@ function setNotice(text = '', error = false) {
   el('notice').hidden = !text;
   el('notice').dataset.error = String(error);
   library.dataset.notice = String(Boolean(text));
+}
+
+function collapseDownloadedMapPanel() {
+  if (portraitPhone.matches && library.dataset.panel === 'offline' && library.dataset.ready === 'true' &&
+      !download && el('notice').dataset.error !== 'true') {
+    setNotice();
+    sheet(false);
+  }
 }
 
 function atVersion(target,installed) {
@@ -520,6 +529,7 @@ function drawMap() {
   forestry.setMap(null);
   map?.destroy();
   map = null;
+  layerPanel.setView('map');
   const archive = cachedArchive || preview;
   const packData = cachedManifest || data;
   if (!archive || !packData) {
@@ -542,6 +552,7 @@ function drawMap() {
       container:mapCanvas,
       pack,
       archive,
+      onViewChange:layerPanel.setView,
       onReady(activeMap) {
         if (revision !== mapRevision) return;
         mapRendered = true;
@@ -910,8 +921,12 @@ search.addEventListener('keydown', event => {
   if (first && normalized(search.value)) first.click();
   else search.blur();
 });
-el('zoom-in').addEventListener('click', () => map?.zoomBy(1));
-el('zoom-out').addEventListener('click', () => map?.zoomBy(-1));
+for (const [button,delta] of [['zoom-in',1],['zoom-out',-1]]) {
+  el(button).addEventListener('click',() => {
+    collapseDownloadedMapPanel();
+    map?.zoomBy(delta);
+  });
+}
 el('map-north').addEventListener('click',() => map?.map.resetNorth({duration:180}));
 el('fit-region').addEventListener('click', () => {
   if (trackPanel.showOverview()) return;

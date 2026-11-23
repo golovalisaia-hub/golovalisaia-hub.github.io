@@ -149,6 +149,12 @@ progress::-webkit-progress-value { background:#47664c; border-radius:99px; }
 .map-caption strong,.map-caption div span { display:block; }
 .map-caption strong { font-size:1rem; overflow-wrap:anywhere; }
 .map-caption div span { color:var(--muted); margin-top:2px; font-size:.8rem; }
+.map-caption:has(.map-photo-overview:not([hidden])) #map-state { display:none; }
+.map-photo-overview {
+  pointer-events:auto; min-height:44px; max-width:100%; margin:-4px 0 -6px; padding:0; border:0;
+  text-align:left; color:#245643; background:transparent; font-size:.78rem; font-weight:700;
+  text-decoration:underline; text-underline-offset:3px;
+}
 .connection { display:flex; align-items:center; gap:7px; padding:8px 10px; color:#325c40; white-space:nowrap; font-weight:700; font-size:.79rem; }
 .connection>span:first-child { width:7px; height:7px; border-radius:50%; background:#458758; }
 .connection[data-offline=true] { color:#6e532a; }

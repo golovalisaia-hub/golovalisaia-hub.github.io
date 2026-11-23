@@ -7,13 +7,14 @@ const el = id => document.getElementById(id);
 const format = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const size = bytes => format.format(bytes / 1024 / 1024) + ' МБ';
 
-export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChanged}) {
+export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChanged,onModeSelected}) {
   const dialog = el('layers-dialog');
   const modes = [...dialog.querySelectorAll('[data-layer-mode]')];
   const manifests = {};
   const assets = {};
   const savedBytes = {};
   let mode = 'map';
+  let view = 'map';
   let requestedMode;
   let transfer;
   let removing = false;
@@ -73,10 +74,15 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       const remove = el('remove-' + name);
       const downloading = transfer?.group === group;
       const installedBytes = group.reduce((sum,kind) => sum + (assets[kind]?.manifest.bytes || 0),0);
-      el(name + '-status').textContent = ready ? 'На устройстве · ' + size(installedBytes) +
+      const status = ready ? 'На устройстве · ' + size(installedBytes) +
         (update ? ' · обновление ' + size(expected - saved) : '') :
         exists ? (saved ? size(saved) + ' из ' + size(expected) : size(expected)) :
         loaded ? 'Пакет недоступен' : 'Подготовка…';
+      const resolution = name === 'satellite' ? (assets.satellite?.manifest || manifests.satellite)?.groundResolution : null;
+      const nextResolution = update && name === 'satellite' ? manifests.satellite.groundResolution : null;
+      const sampling = Number.isFinite(nextResolution) && nextResolution !== resolution
+        ? `${resolution} → ${nextResolution} м/пиксель` : `около ${resolution} м/пиксель`;
+      el(name + '-status').textContent = Number.isFinite(resolution) ? status + ' · ' + sampling : status;
       button.hidden = (ready && !update) || downloading;
       button.textContent = update ? 'Обновить' : saved ? 'Продолжить' : 'Скачать';
       button.disabled = !isReady() || !exists || busy;
@@ -91,12 +97,22 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       el('layer-progress-label').textContent = `${percent}% · ${size(saved)} из ${size(expected)}`;
     }
     for (const button of modes) button.setAttribute('aria-pressed',String(button.dataset.layerMode === mode));
-    const treeCover = ['map','forest','topographic','outdoor'].includes(mode);
+    renderView();
+  }
+
+  function renderView() {
+    const treeCover = ['map','forest','topographic','outdoor'].includes(view);
     el('forest-option').hidden = !treeCover || !assets.forest;
     el('forest-credit').hidden = !treeCover || !assets.forest || !el('show-forest').checked;
-    el('satellite-credit').hidden = mode !== 'satellite' && mode !== 'hybrid';
-    el('terrain-credit').hidden = mode !== 'topographic';
-    el('overture-credit').hidden = !assets.detail || mode === 'satellite';
+    el('satellite-credit').hidden = view !== 'satellite' && view !== 'hybrid';
+    el('terrain-credit').hidden = view !== 'topographic';
+    el('overture-credit').hidden = !assets.detail || view === 'satellite';
+  }
+
+  function setView(next,schemeAtCloseZoom = false) {
+    view = next;
+    el('photo-overview').hidden = !schemeAtCloseZoom;
+    renderView();
   }
 
   function paint() {
@@ -110,22 +126,19 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       const installed = await session.openInstalledArchive(manifest || kind);
       const bytes = !manifest ? 0 : installed?.manifest.version === manifest.version ? manifest.bytes :
         await session.progressOnDisk(manifest);
-      return {kind,manifest,installed,bytes};
-    }));
-    if (storage !== session) return;
-    for (const result of packages) {
-      if (result.status === 'rejected') continue;
-      const {kind,manifest,installed,bytes} = result.value;
+      if (storage !== session) return;
       if (manifest) manifests[kind] = manifest;
       if (installed) assets[kind] = installed;
       savedBytes[kind] = bytes;
       updateAttribution(kind);
-    }
+      if (installed) paint();
+      downloadChanged();
+    }));
+    if (storage !== session) return;
     if (packages.some(result => result.status === 'rejected')) {
       notice('Часть защищённых слоёв не открылась. Проверь свободное место и снова открой карты.',true);
     }
     loaded = true;
-    paint();
     downloadChanged();
   }
 
@@ -140,6 +153,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
     loaded = false;
     mode = 'map';
     requestedMode = undefined;
+    setView('map');
     notice();
   }
 
@@ -234,6 +248,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   for (const button of [el('map-layers'),...document.querySelectorAll('[data-open-layers]')]) {
     button.addEventListener('click',() => dialog.showModal());
   }
+  el('photo-overview').addEventListener('click',() => getMap()?.showImagery());
   for (const button of modes) {
     button.addEventListener('click',() => {
       const next = button.dataset.layerMode;
@@ -251,6 +266,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       paint();
       render();
       dialog.close();
+      onModeSelected?.();
     });
   }
   for (const [name,group] of Object.entries(groups)) {
@@ -264,7 +280,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   el('show-forest').addEventListener('change',() => { paint(); render(); });
 
   return {
-    load,lock,paint,render,vectorParts,vectorState,clearVector:() => clearGroup(groups.details),
+    load,lock,paint,render,setView,vectorParts,vectorState,clearVector:() => clearGroup(groups.details),
     hasDetail:() => Boolean(assets.detail),isBusy:() => Boolean(transfer || removing),
   };
 }

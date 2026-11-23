@@ -164,7 +164,7 @@ function visible(map,id,enabled) {
   }
 }
 
-export function applyOverlayMode(map,layers,{mode,forest,detail,field}) {
+export function applyOverlayMode(map,layers,{mode,forest,detail,field,photoFade}) {
   const photo = mode === 'satellite' || mode === 'hybrid';
   const hybrid = mode === 'hybrid';
   const dark = mode === 'dark';
@@ -196,6 +196,9 @@ export function applyOverlayMode(map,layers,{mode,forest,detail,field}) {
     }
   }
   visible(map,satelliteLayer,photo);
+  if (map.getLayer(satelliteLayer)) {
+    map.setPaintProperty(satelliteLayer,'raster-opacity',photo && photoFade ? zoom(photoFade.fade,1,photoFade.end,0) : 1);
+  }
   visible(map,forestLayer,(mode === 'map' || outdoor) && forest);
   visible(map,terrainLayer,mode === 'topographic');
   visible(map,contourLayer,mode === 'topographic');

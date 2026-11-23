@@ -8,6 +8,7 @@ import {applyOverlayMode,fieldWayHits,houseFill,houseNumbers,overlayStyles} from
 const sources = new Map();
 let sourceId = 0;
 const rasterTypes = new Set([TileType.Png,TileType.Jpeg,TileType.Webp,TileType.Avif]);
+const usesPhoto = mode => mode === 'satellite' || mode === 'hybrid';
 const transparentPixel = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 const transparentImage = Uint8Array.from(atob(transparentPixel), char => char.charCodeAt(0));
 
@@ -74,7 +75,7 @@ function markerElement() {
   return marker;
 }
 
-export function createMap({ container, pack, archive, onReady, onError, onBuilding, onFieldFeature }) {
+export function createMap({ container, pack, archive, onReady, onError, onBuilding, onFieldFeature, onViewChange }) {
   const token = String(++sourceId);
   const [west, south, east, north] = pack.bounds;
   const bounds = [[west, south], [east, north]];
@@ -116,8 +117,13 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
   let positionMarker;
   let position;
   const overlays = new Map();
+  let requestedMode = 'map';
   let shownMode = 'map';
   let shownForest = true;
+  let buttonZoom;
+
+  map.on('movestart', event => { if (!event.quietButtonZoom) buttonZoom = undefined; });
+  map.on('moveend', () => { buttonZoom = undefined; });
 
   map.once('load', () => {
     loaded = true;
@@ -163,7 +169,7 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
     const overlayPack = {bounds:pack.bounds,minZoom:manifest.minZoom,maxZoom:manifest.maxZoom};
     const reader = archiveReader(archive,idToken);
     sources.set(idToken,{pack:overlayPack,reader,type:layer.type,maxZoom:manifest.maxZoom});
-    overlays.set(kind,{token:idToken,archive});
+    overlays.set(kind,{token:idToken,archive,manifest});
     map.addSource(id,{
       type:layer.type,url:`quiet://${idToken}/tiles`,
       ...(layer.type === 'raster' ? {tileSize:manifest.tileSize || 256} : {}),
@@ -175,20 +181,45 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
     return true;
   }
 
+  function photoRange() {
+    const image = overlays.get('satellite')?.manifest;
+    if (!image || !usesPhoto(requestedMode)) return null;
+    // The camera uses 512 CSS pixels per tile at its own zoom level.
+    const native = image.maxZoom + Math.log2((image.tileSize || 256) / 512);
+    return {labels:native + .5,fade:native + 1,end:native + 2.25};
+  }
+
+  function refreshMapView(force = false) {
+    if (!loaded || destroyed) return;
+    const range = photoRange();
+    const hasRegionalDetail = source.maxZoom >= 12 || overlays.has('detail');
+    const zoom = map.getZoom();
+    const useScheme = Boolean(range && hasRegionalDetail && zoom >= range.end);
+    const view = useScheme ? 'map' :
+      range && requestedMode === 'satellite' && zoom >= range.labels ? 'hybrid' : requestedMode;
+    if (!force && view === shownMode) return;
+    shownMode = view;
+    applyOverlayMode(map,baseLayers,{
+      mode:view,forest:shownForest,detail:overlays.has('detail'),field:overlays.has('field-ways'),
+      photoFade:hasRegionalDetail ? range : null,
+    });
+    onViewChange?.(view,useScheme);
+  }
+  map.on('zoom',() => refreshMapView());
+
   function updateLayers(assets,{mode = 'map',forest = true} = {}) {
     if (!loaded || destroyed) return;
     let changed = false;
     for (const kind of ['forest','terrain','satellite','detail','contours','field-ways']) {
       if (installOverlay(kind,assets[kind])) changed = true;
     }
-    const needsPhotos = mode === 'satellite' || mode === 'hybrid';
-    const modeToShow = (needsPhotos && !overlays.has('satellite')) ||
+    const modeToShow = (usesPhoto(mode) && !overlays.has('satellite')) ||
       (mode === 'topographic' && (!overlays.has('terrain') || !overlays.has('contours'))) ? 'map' : mode;
-    if (!changed && modeToShow === shownMode && forest === shownForest) return;
-    shownMode = modeToShow;
+    if (!changed && modeToShow === requestedMode && forest === shownForest) return;
+    requestedMode = modeToShow;
     shownForest = forest;
     map.setMaxZoom(overlays.has('detail') ? 20 : Math.min(18, source.maxZoom + 4));
-    applyOverlayMode(map,baseLayers,{mode:shownMode,forest:shownForest,detail:overlays.has('detail'),field:overlays.has('field-ways')});
+    refreshMapView(true);
   }
 
   function fit(duration = 200) {
@@ -207,7 +238,16 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
   }
 
   function zoomBy(delta) {
-    if (!destroyed && Number.isFinite(delta)) map.zoomTo(map.getZoom() + delta, { duration: 180 });
+    if (destroyed || !Number.isFinite(delta)) return;
+    const target = Math.max(map.getMinZoom(),Math.min(map.getMaxZoom(),(buttonZoom ?? map.getZoom()) + delta));
+    if (target === buttonZoom) return;
+    map.zoomTo(target,{duration:180},{quietButtonZoom:true});
+    buttonZoom = map.isZooming() ? target : undefined;
+  }
+
+  function showImagery() {
+    const range = photoRange();
+    if (range && !destroyed) map.zoomTo(Math.min(map.getZoom(),range.labels - .2),{duration:260});
   }
 
   function inside(lng, lat) {
@@ -255,7 +295,7 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
     else element.style.removeProperty('--position-heading');
     updateAccuracy();
     if (follow && !stale) {
-      const target = shownMode === 'satellite' ? 11 : overlays.has('detail') ? 15 : Math.min(14,source.maxZoom + 1);
+      const target = overlays.has('detail') ? 15 : Math.min(14,source.maxZoom + 1);
       map.easeTo({center:point,duration:220,...(recenter ? {zoom:Math.max(target,map.getZoom())} : {})});
     }
     return true;
@@ -272,5 +312,5 @@ export function createMap({ container, pack, archive, onReady, onError, onBuildi
   }
 
   fit(0);
-  return { fit, resize, zoomBy, visit, destroy, map, setPosition, clearPosition,updateLayers };
+  return { fit, resize, zoomBy, showImagery, visit, destroy, map, setPosition, clearPosition,updateLayers };
 }
