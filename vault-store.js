@@ -1,4 +1,4 @@
-import { MAX_VAULT_BYTES, MAX_RECORDS, TAG_BYTES, VaultError } from './vault-crypto.js'
+import { MAX_VAULT_BYTES, MAX_RECORDS, storedPhotoSize, VaultError } from './vault-crypto.js'
 
 const DATABASE = 'quiet-maps-vault'
 const SETTINGS = 'vault'
@@ -68,8 +68,43 @@ function transaction(db, mode, signal, work) {
   })
 }
 
+function addStoredPhoto(photos, record, fail) {
+  const request = photos.add(record)
+  request.onerror = event => {
+    if (request.error.name === 'AbortError') return
+    event.preventDefault()
+    fail(request.error)
+  }
+  return request
+}
+
 export async function openVaultStore() {
   const db = await openDatabase()
+  let storeBlobs = true
+
+  async function writePhotos(records, signal, write) {
+    if (storeBlobs) {
+      try {
+        return await write(records)
+      } catch (error) {
+        if (signal?.aborted || !records.some(record => record.photo.ciphertext instanceof Blob) ||
+            !(error.name === 'DataCloneError' || error.name === 'UnknownError' && /Blob\/File/i.test(error.message))) {
+          throw error
+        }
+        // WebKit can reject Blob values in IndexedDB. The failed transaction is already aborted.
+        storeBlobs = false
+      }
+    }
+    const compatible = []
+    for (const record of records) {
+      signal?.throwIfAborted()
+      const { photo } = record
+      const ciphertext = photo.ciphertext instanceof Blob ? new Uint8Array(await photo.ciphertext.arrayBuffer()) : photo.ciphertext
+      compatible.push({ ...record, photo: { ...photo, ciphertext } })
+    }
+    return write(compatible)
+  }
+
   return {
     readConfig() {
       return transaction(db, 'readonly', null, (settings, _photos, complete) => {
@@ -85,37 +120,50 @@ export async function openVaultStore() {
       })
     },
     create(config, records, signal) {
-      return transaction(db, 'readwrite', signal, (settings, photos, _complete, fail) => {
+      return writePhotos(records, signal, items => transaction(db, 'readwrite', signal, (settings, photos, _complete, fail) => {
         const request = settings.add(config, CONFIG)
         request.onerror = event => {
           if (request.error.name !== 'ConstraintError') return
           event.preventDefault()
           fail(new VaultError('existing-vault'))
         }
-        for (const record of records) photos.add(record)
-      })
+        let index = 0
+        function addNext() {
+          if (index === items.length) return
+          try {
+            addStoredPhoto(photos, items[index++], fail).onsuccess = addNext
+          } catch (error) {
+            fail(error)
+          }
+        }
+        request.onsuccess = addNext
+      }))
     },
     addPhoto(record, signal) {
-      return transaction(db, 'readwrite', signal, (_settings, photos, _complete, fail) => {
+      return writePhotos([record], signal, ([item]) => transaction(db, 'readwrite', signal, (_settings, photos, _complete, fail) => {
         const request = photos.getAll()
         request.onsuccess = () => {
           const available = request.result
           let size = 0
           for (const photo of available) {
-            const encrypted = photo.photo?.ciphertext
-            if (!(encrypted instanceof Blob) || encrypted.size <= TAG_BYTES) {
+            const bytes = storedPhotoSize(photo)
+            if (!bytes) {
               fail(new VaultError('record'))
               return
             }
-            size += encrypted.size - TAG_BYTES
+            size += bytes
           }
-          if (available.length >= MAX_RECORDS || size + record.photo.ciphertext.size - TAG_BYTES > MAX_VAULT_BYTES) {
+          if (available.length >= MAX_RECORDS || size + storedPhotoSize(item) > MAX_VAULT_BYTES) {
             fail(new VaultError('vault-full'))
             return
           }
-          photos.add(record)
+          try {
+            addStoredPhoto(photos, item, fail)
+          } catch (error) {
+            fail(error)
+          }
         }
-      })
+      }))
     },
     deletePhoto(id, signal) {
       return transaction(db, 'readwrite', signal, (_settings, photos) => {

@@ -156,13 +156,19 @@ function identifyPhoto(bytes) {
   return 'image/heif'
 }
 
+export function storedPhotoSize(record) {
+  const content = record?.photo?.ciphertext
+  const length = content instanceof Uint8Array ? content.byteLength :
+    content instanceof Blob && content.type === '' ? content.size : 0
+  return length > TAG_BYTES && length <= MAX_PHOTO_BYTES + TAG_BYTES ? length - TAG_BYTES : 0
+}
+
 function validRecord(record) {
   return typeof record?.id === 'string' && idPattern.test(record.id) &&
     hasBytes(record.metadata?.iv, IV_BYTES) && hasBytes(record.photo?.iv, IV_BYTES) &&
     record.metadata.ciphertext instanceof Uint8Array &&
     record.metadata.ciphertext.length > TAG_BYTES && record.metadata.ciphertext.length <= METADATA_LIMIT &&
-    record.photo.ciphertext instanceof Blob && record.photo.ciphertext.type === '' &&
-    record.photo.ciphertext.size > TAG_BYTES && record.photo.ciphertext.size <= MAX_PHOTO_BYTES + TAG_BYTES
+    storedPhotoSize(record) > 0
 }
 
 export async function sealPhoto(session, file, assertActive = () => {}) {
@@ -205,7 +211,7 @@ export async function openMetadata(session, record) {
     const metadata = JSON.parse(decoder.decode(bytes))
     const types = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/avif']
     if (typeof metadata?.name !== 'string' || metadata.name.length === 0 || metadata.name.length > 1024 ||
-        !types.includes(metadata.type) || metadata.size !== record.photo.ciphertext.size - TAG_BYTES ||
+        !types.includes(metadata.type) || metadata.size !== storedPhotoSize(record) ||
         !Number.isSafeInteger(metadata.lastModified)) throw new VaultError('record')
     return metadata
   } finally {
@@ -214,7 +220,8 @@ export async function openMetadata(session, record) {
 }
 
 async function decryptPhoto(session, record, metadata, assertActive) {
-  const ciphertext = await record.photo.ciphertext.arrayBuffer()
+  const content = record.photo.ciphertext
+  const ciphertext = content instanceof Blob ? await content.arrayBuffer() : content
   assertActive()
   const bytes = await open(session, 'photo', record.id, { iv: record.photo.iv, ciphertext })
   try {
@@ -252,7 +259,7 @@ export async function createBackup(session, records) {
   }
   const ids = records.map(record => record.id)
   if (new Set(ids).size !== ids.length) throw new VaultError('record')
-  const photoBytes = records.reduce((total, record) => total + record.photo.ciphertext.size - TAG_BYTES, 0)
+  const photoBytes = records.reduce((total, record) => total + storedPhotoSize(record), 0)
   if (photoBytes > MAX_VAULT_BYTES) throw new VaultError('backup-size')
   const manifest = await seal(session, 'backup', '', encoder.encode(JSON.stringify(ids)))
   // The fixed header carries the vault parameters and the encrypted manifest's packet header.

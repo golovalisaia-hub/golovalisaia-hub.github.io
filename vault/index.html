@@ -6,7 +6,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; manifest-src 'self'; connect-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
   <meta name="theme-color" content="#182e28">
   <meta name="description" content="Локальное шифрование фотографий в приложении «Тихие карты».">
-  <title>Фотосейф — Тихие карты</title>
+  <title>Метка — Тихие карты</title>
   <link rel="icon" href="/icons/app-192.png">
   <link rel="apple-touch-icon" href="/icons/app-180.png">
   <link rel="manifest" href="/manifest.webmanifest">
@@ -22,7 +22,7 @@
       </a>
       <nav class="mode-switch" aria-label="Раздел приложения">
         <a href="/"><span class="icon icon-map" aria-hidden="true"></span>Карты</a>
-        <a href="/vault/" aria-current="page"><span class="icon icon-lock" aria-hidden="true"></span>Фотосейф</a>
+        <a href="/vault/" aria-current="page"><span class="icon icon-lock" aria-hidden="true"></span>Метка</a>
       </nav>
     </div>
   </header>
@@ -31,8 +31,8 @@
     <header class="banner">
       <div class="banner-mark" aria-hidden="true"><span class="icon icon-lock"></span></div>
       <div class="banner-copy">
-        <h1>Фотосейф</h1>
-        <p>Фотографии шифруются на этом устройстве и открываются по паролю.</p>
+        <h1>Метка</h1>
+        <p>Защищённые фотографии на этом устройстве.</p>
       </div>
       <div id="vault-banner-actions" class="banner-actions" hidden>
         <span id="vault-state" class="vault-state"><span aria-hidden="true"></span>Закрыт</span>
@@ -52,7 +52,7 @@
 
         <section id="vault-setup-panel" class="panel" aria-labelledby="vault-setup-title" hidden>
           <h2 id="vault-setup-title">Создать фотосейф</h2>
-          <p class="muted">Сохраните пароль в надёжном месте. Он нужен и для открытия фотосейфа, и для восстановления из копии.</p>
+          <p class="muted">Придумайте отдельный пароль для фото. Он нужен для открытия альбома и восстановления из копии.</p>
           <form id="vault-setup-form" method="post" autocomplete="off">
             <fieldset id="vault-setup-fields" disabled>
               <label class="input-label" for="vault-new-password">Пароль</label>
@@ -113,6 +113,7 @@
             <button id="vault-backup" type="button" class="button secondary"><span class="icon icon-download" aria-hidden="true"></span>Подготовить копию</button>
             <a id="vault-save-backup" class="button secondary" download="тихие-карты.qmvault" hidden>Скачать копию</a>
           </div>
+          <p class="input-note">Здесь сохраняются зашифрованные копии. Оригиналы остаются в приложении «Фото».</p>
           <p class="input-note">JPEG, PNG, WebP, HEIC, HEIF, AVIF. До 20 МБ на фото и 128 МБ на весь сейф.</p>
           <p id="vault-empty" class="empty">Здесь появятся добавленные фотографии.</p>
           <ul id="vault-photo-list" class="photo-list"></ul>
@@ -126,9 +127,6 @@
         </div>
         <p>Имена и содержимое файлов хранятся зашифрованными. Фотосейф закрывается в фоне и после 90 секунд бездействия.</p>
         <p>Данные браузера могут очиститься. Храните зашифрованную копию отдельно.</p>
-        <hr>
-        <h3>Оригиналы в приложении «Фото»</h3>
-        <p>При добавлении оригиналы остаются в «Фото». После проверки резервной копии их можно скрыть там вручную.</p>
       </aside>
     </div>
   </main>

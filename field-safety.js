@@ -1,8 +1,8 @@
-import {getBearing,locationText} from './position-data.js';
+import {getBearing} from './position-data.js';
+import {createPositionReadout} from './position-readout.js';
 import {readinessOverall,phoneChecks} from './readiness-state.js';
 
 const el = id => document.getElementById(id);
-const date = new Intl.DateTimeFormat('ru-RU',{dateStyle:'short',timeStyle:'medium'});
 const number = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const phoneKey = 'quiet-field-phone-verification';
 const firstUseKey = 'quiet-field-first-use-1';
@@ -31,8 +31,9 @@ function distanceLabel(distance) {
   return distance < 1000 ? Math.round(distance) + ' м' : number.format(distance/1000) + ' км';
 }
 
-export function createFieldSafety({getState,requestGps,onBegin,onEnd,onAnchor,onTrack,onWakeChange}) {
+export function createFieldSafety({getState,getPosition,requestGps,onBegin,onEnd,onAnchor,onTrack,onWakeChange}) {
   const dialog = el('field-safety');
+  const readout = createPositionReadout({dialog,prefix:'safety',getState:getPosition});
   const intro = el('first-field-use');
   const checklist = [...el('phone-verification').querySelectorAll('input[type=checkbox]')];
   const wake = el('field-wake');
@@ -75,14 +76,8 @@ export function createFieldSafety({getState,requestGps,onBegin,onEnd,onAnchor,on
     const state = getState();
     renderBearing(state);
     if (!dialog.open) return;
-    const fix = state.fix || state.last;
-    el('safety-position-status').textContent = state.positionLabel;
-    el('safety-copy').disabled = !fix;
-    el('safety-coordinates').hidden = !fix;
-    el('safety-fix-details').hidden = !fix;
+    readout.render(state);
     el('safety-fix-extra').hidden = !state.fix || (state.fix.altitude === null && state.fix.speed === null && state.fix.heading === null);
-    el('safety-coordinates').textContent = fix ? fix.lat.toFixed(6) + ', ' + fix.lng.toFixed(6) : '';
-    el('safety-fix-details').textContent = fix ? 'Точность ±' + Math.ceil(fix.accuracy) + ' м · ' + date.format(fix.timestamp) : '';
     const current = state.fix;
     el('safety-fix-extra').textContent = current ? [
       current.altitude !== null && 'Высота ' + Math.round(current.altitude) + ' м',
@@ -199,33 +194,7 @@ export function createFieldSafety({getState,requestGps,onBegin,onEnd,onAnchor,on
   }
   el('safety-retrace').addEventListener('click',() => { dialog.close(); onTrack(true); });
   el('safety-field-journal').addEventListener('click',() => { dialog.close(); onTrack(false); });
-  el('safety-copy').addEventListener('click',async () => {
-    const state = getState();
-    const fix = state.fix || state.last;
-    if (!fix) return;
-    const current = revision;
-    const text = (state.fix ? '' : 'Последняя известная позиция · ') + locationText(fix);
-    try {
-      if (!navigator.clipboard) throw new Error('clipboard');
-      await navigator.clipboard.writeText(text);
-      if (current !== revision || !dialog.open) return;
-      el('safety-copy-status').textContent = 'Координаты скопированы.';
-      el('safety-copy-status').hidden = false;
-    } catch {
-      if (current !== revision || !dialog.open) return;
-      const field = el('safety-copy-fallback');
-      field.value = text;
-      field.hidden = false;
-      field.focus();
-      field.select();
-    }
-  });
-  dialog.addEventListener('close',() => {
-    detachCompass();
-    el('safety-copy-fallback').value = '';
-    el('safety-copy-fallback').hidden = true;
-    redact(el('safety-copy-status'));
-  });
+  dialog.addEventListener('close',detachCompass);
   wake.addEventListener('change',() => {
     localWrite(wakeKey,wake.checked ? 'on' : 'off');
     onWakeChange();
@@ -254,12 +223,9 @@ export function createFieldSafety({getState,requestGps,onBegin,onEnd,onAnchor,on
       stopGuide();
       if (dialog.open) dialog.close();
       if (intro.open) intro.close();
-      for (const id of ['safety-position-status','safety-coordinates','safety-fix-details','safety-fix-extra','safety-copy-status','safety-compass-status']) {
-        redact(el(id));
-      }
-      el('safety-position-status').hidden = false;
-      el('safety-copy-fallback').value = '';
-      el('safety-copy-fallback').hidden = true;
+      readout.clear();
+      redact(el('safety-fix-extra'));
+      redact(el('safety-compass-status'));
       el('safety-car-status').textContent = '';
       el('safety-start-status').textContent = '';
       for (const {text} of rows) text.textContent = '';

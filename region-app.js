@@ -8,6 +8,7 @@ import {createFieldPanel} from './field-panel.js';
 import {createPrivacyLock} from './privacy-lock.js';
 import {createForestryTools} from './forestry-tools.js';
 import {createFieldSafety} from './field-safety.js';
+import {createPositionReadout} from './position-readout.js';
 import {getBearing,readGpsFix,inAdministrativeRegion} from './position-data.js';
 import {TRACK_FIX_MAX_AGE_MS} from './track-geometry.js';
 
@@ -20,6 +21,11 @@ const portraitPhone = window.matchMedia('(max-width:680px) and (orientation:port
 const visibleViewport = window.visualViewport;
 const results = el('places');
 const mapCanvas = el('map');
+const markDialog = el('mark-dialog');
+const markGps = el('mark-gps');
+const markMap = el('mark-show-map');
+const markCopy = el('mark-copy');
+const markReadout = createPositionReadout({dialog:markDialog,prefix:'mark',getState:positionState});
 const mapButtons = ['zoom-in','zoom-out','fit-region','my-position','map-north','pick-destination'].map(el);
 const format = new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const workspace = document.querySelector('.workspace');
@@ -155,6 +161,7 @@ const forestry = createForestryTools({
 });
 const safety = createFieldSafety({
   getState:safetyState,
+  getPosition:positionState,
   requestGps:() => startPosition(true,false,'map'),
   onBegin() {
     trackPanel.stopReturn();
@@ -346,7 +353,7 @@ function stopPosition(text = '',fault = '') {
   navigation.unavailable(text);
   trackPanel.suspend(text);
   fieldPanel.render();
-  safety.render();
+  renderPositionPanels();
 }
 
 function paintPosition() {
@@ -386,7 +393,7 @@ function positionLost(watch) {
   navigation.gpsIssue('GPS пока недоступен. Попробуй построить маршрут ещё раз.');
   trackPanel.gpsIssue(true);
   fieldPanel.render();
-  safety.render();
+  renderPositionPanels();
 }
 
 function startPosition(follow,restart = false,owner = 'map') {
@@ -412,7 +419,7 @@ function startPosition(follow,restart = false,owner = 'map') {
   el('my-position').setAttribute('aria-pressed','true');
   el('my-position').title = 'Выключить геопозицию';
   positionMessage('Ищем сигнал GPS…');
-  safety.render();
+  renderPositionPanels();
   watch.id = navigator.geolocation.watchPosition(
     reading => {
       if (position !== watch || document.hidden) return;
@@ -432,7 +439,7 @@ function startPosition(follow,restart = false,owner = 'map') {
       navigation.updateFix(watch.sample);
       trackPanel.updateFix(watch.sample);
       fieldPanel.render();
-      safety.render();
+      renderPositionPanels();
       if (trackPanel.isActive() || workspace.dataset.guiding === 'true') privacy.activity();
     },
     ({code}) => {
@@ -444,28 +451,49 @@ function startPosition(follow,restart = false,owner = 'map') {
   );
 }
 
+function positionState() {
+  const fix = position?.sample;
+  let positionLabel = 'Нет сигнала GPS';
+  if (fix) positionLabel = geography && !inRegion(fix.lng,fix.lat) ? 'Текущая позиция за границей Мурманской области' :
+    fix.accuracy <= 50 ? 'Текущая позиция GPS' : 'Низкая точность GPS';
+  else if (lastFix) positionLabel = 'Последняя известная позиция';
+  else if (positionFault === 'waiting') positionLabel = 'Ищем сигнал GPS…';
+  else if (positionFault === 'denied') positionLabel = 'Нет сигнала GPS · доступ запрещён';
+  else if (positionFault === 'unavailable') positionLabel = 'Геопозиция недоступна в этом браузере';
+  else if (!positionFault) positionLabel = 'Геопозиция выключена';
+  return {fix,last:lastFix,positionLabel};
+}
+
+function renderPositionPanels() {
+  safety.render();
+  if (!markDialog.open) return;
+  const state = positionState();
+  markReadout.render(state);
+  const point = state.fix || state.last;
+  markGps.hidden = Boolean(state.fix);
+  markGps.disabled = positionFault === 'waiting';
+  markGps.textContent = state.last ? 'Обновить местоположение' : 'Определить местоположение';
+  markMap.hidden = markCopy.hidden = !point;
+  markMap.disabled = !(mapRendered && point && inMapBounds(point.lng,point.lat));
+}
+
 function safetyState() {
   const vector = layerPanel.vectorState();
   const field = fieldPanel.snapshot();
   const track = trackPanel.status();
-  const fix = position?.sample;
+  const state = positionState();
+  const {fix,positionLabel} = state;
   const goodFix = fix && fix.accuracy <= 50 && inRegion(fix.lng,fix.lat);
   const mapReady = Boolean(offlineReady && cachedArchive && mapRendered && !mapFailed && vector.ready);
   const packageVersion = [shellVersion,cachedManifest?.version,...vector.versions,walkingManifest?.version];
   const version = packageVersion.every(Boolean) ? packageVersion.join('|') : '';
   const bearing = goodFix && field.car ? getBearing(fix,field.car) : null;
-  let positionLabel = 'Нет сигнала GPS';
-  if (fix) positionLabel = !inRegion(fix.lng,fix.lat) ? 'Текущая позиция за границей скачанной области' :
-    goodFix ? 'Текущая позиция GPS' : 'Низкая точность GPS';
-  else if (lastFix) positionLabel = 'Последняя известная позиция';
-  else if (positionFault === 'waiting') positionLabel = 'Ищем сигнал GPS…';
-  else if (positionFault === 'denied') positionLabel = 'Нет сигнала GPS · доступ запрещён';
   const gpsFault = positionFault === 'denied' || positionFault === 'unavailable' ||
     (positionFault === 'lost' && !lastFix);
   const sourceDate = geography?.asOf?.slice(0,10);
   const datedForest = sourceDate ? 'Срез OSM за ' + sourceDate + '. ' : '';
   return {
-    fix,last:lastFix,positionLabel,car:field.car,start:field.start,hasPath:track.hasPath,version,
+    ...state,car:field.car,start:field.start,hasPath:track.hasPath,version,
     canConfirm:Boolean(mapReady && walkingArchive && geography && field.ready && track.ready),
     rows:{
       map:mapReady ? ['VERIFIED','Проверены архивы и чтение карты на устройстве.'] :
@@ -536,7 +564,7 @@ function drawMap() {
     mapFailed = true;
     el('map-loading').textContent = 'Карта недоступна. Проверь скачанные данные.';
     el('map-loading').hidden = false;
-    safety.render();
+    renderPositionPanels();
     return;
   }
   const pack = {...packData.region,maxZoom:cachedArchive ? packData.region.maxZoom : packData.previewZoom};
@@ -565,7 +593,7 @@ function drawMap() {
         layerPanel.paint();
         if (focusPlace) map?.visit(focusPlace.center, parkingZoom(focusPlace));
         paintPosition();
-        safety.render();
+        renderPositionPanels();
       },
       onBuilding({properties,center}) {
         if (!canInspectMap()) return;
@@ -589,7 +617,7 @@ function drawMap() {
         mapFailed = true;
         if (el('map-loading').hidden) setNotice('Часть карты не прочиталась. Проверь архивы в «Безопасности».',true);
         else el('map-loading').textContent = 'Карта не открылась. Попробуй перезагрузить приложение.';
-        safety.render();
+        renderPositionPanels();
       },
     });
     map.map?.on('dragstart', event => {
@@ -937,15 +965,31 @@ el('fit-region').addEventListener('click', () => {
   map?.fit();
 });
 el('my-position').addEventListener('click', togglePosition);
+el('mark-open').addEventListener('click', () => {
+  if (!privacy.isUnlocked() || markDialog.open) return;
+  markDialog.showModal();
+  renderPositionPanels();
+});
+markGps.addEventListener('click', () => startPosition(Boolean(position?.follow),positionFault === 'lost',position?.owner));
+markMap.addEventListener('click', () => {
+  if (!markDialog.open || !mapRendered || markMap.disabled) return;
+  if (position?.sample) startPosition(true);
+  else if (!map?.visit(lastFix)) return;
+  markDialog.close();
+});
 el('vault-link').addEventListener('click', event => {
-  if (offlineReady) return;
+  if (privacy.isUnlocked() && offlineReady) return;
   event.preventDefault();
+  if (!privacy.isUnlocked()) return;
+  markDialog.close();
   sheet(true,'offline');
-  setNotice('Сейф откроется, когда приложение подготовит файлы для офлайн-работы.');
+  setNotice('Альбом откроется, когда приложение подготовит файлы для офлайн-работы.');
 });
 function clearPrivateSession() {
   lastFix = undefined;
   stopPosition();
+  markReadout.clear();
+  markMap.disabled = true;
   navigation.hide();
   focusPlace = undefined;
   search.value = '';

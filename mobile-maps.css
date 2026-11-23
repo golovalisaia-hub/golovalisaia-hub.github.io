@@ -73,7 +73,6 @@
     background:#27483d;
     color:#f4f8ed;
   }
-  .brand-actions .vault-shortcut { color:#dff0a2; }
   .brand-actions .about-button:hover { background:#395c4d; }
   .brand-row :focus-visible { outline-color:#dff0a2; outline-offset:-2px; }
 
@@ -209,6 +208,10 @@
   }
   .workspace .field-nav :is(button:hover, button[data-active=true]) { color:#175143; background:#e7f2e9; }
   .workspace .field-nav #safety-open { background:#eaf1e2; }
+  .mark-dialog {
+    margin:auto auto max(9px,var(--safe-bottom)); padding:15px;
+    max-height:calc(100dvh - var(--safe-top) - var(--safe-bottom) - 18px);
+  }
 
   .workspace[data-keyboard=true] .sidebar-head { visibility:hidden; }
   .workspace[data-keyboard=true] .field-nav { display:none; }

@@ -73,7 +73,6 @@
             <span>Тихие карты</span>
           </a>
           <div class="brand-actions">
-            <a id="vault-link" class="icon-button about-button vault-shortcut" href="/vault/" aria-label="Фотосейф" title="Фотосейф"><span class="icon icon-camera" aria-hidden="true"></span></a>
             <button id="lock-now" class="icon-button about-button" type="button" aria-label="Заблокировать карты" title="Заблокировать"><span class="icon icon-lock" aria-hidden="true"></span></button>
             <button id="about" class="icon-button about-button" type="button" aria-label="Установка и приватность" title="Установка и приватность">?</button>
           </div>
@@ -141,6 +140,7 @@
         </section>
       </section>
       <nav class="mode-switch field-nav" aria-label="Полевые инструменты">
+        <button id="mark-open" type="button" aria-haspopup="dialog" aria-controls="mark-dialog"><span class="icon icon-pin" aria-hidden="true"></span>Метка</button>
         <button id="track-open" type="button" aria-haspopup="dialog" aria-controls="track-dialog"><span class="icon icon-track" aria-hidden="true"></span>Мой путь</button>
         <button id="forestry-open" type="button" aria-label="Лес и измерения" aria-haspopup="dialog"><span class="icon icon-tree" aria-hidden="true"></span><span class="forestry-label">Лес и измерения</span></button>
         <button id="safety-open" type="button" aria-haspopup="dialog" aria-controls="field-safety"><span class="icon icon-shield" aria-hidden="true"></span>Безопасность</button>
@@ -213,6 +213,31 @@
     </div>
   </dialog>
 
+  <dialog id="mark-dialog" class="field-safety mark-dialog" aria-labelledby="mark-title">
+    <div class="dialog-title">
+      <h2 id="mark-title">Метка</h2>
+      <button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <section class="safety-card" aria-labelledby="mark-position-title">
+      <h3 id="mark-position-title">Моё местоположение</h3>
+      <p id="mark-position-status" class="position-status" aria-live="polite"></p>
+      <p id="mark-coordinates" class="safety-coordinates" hidden></p>
+      <p id="mark-fix-details" class="safety-caption" hidden></p>
+      <div class="safety-actions mark-actions">
+        <button id="mark-gps" class="inline-button" type="button">Определить местоположение</button>
+        <button id="mark-show-map" class="inline-button" type="button" disabled hidden>Показать на карте</button>
+        <button id="mark-copy" class="inline-button" type="button" disabled hidden>Скопировать координаты</button>
+      </div>
+      <textarea id="mark-copy-fallback" class="safety-copy-fallback" aria-label="Координаты для копирования" readonly hidden></textarea>
+      <p id="mark-copy-status" class="safety-copy-status" role="status" hidden></p>
+    </section>
+    <a id="vault-link" class="mark-photos" href="/vault/" aria-labelledby="mark-vault-title" aria-describedby="mark-vault-note">
+      <span class="mark-photos-icon" aria-hidden="true"><span class="icon icon-camera"></span></span>
+      <span><strong id="mark-vault-title">Защищённые фото</strong><small id="mark-vault-note">Альбом с отдельным паролем</small></span>
+      <span class="mark-photos-arrow" aria-hidden="true">›</span>
+    </a>
+  </dialog>
+
   <dialog id="field-safety" class="field-safety" aria-labelledby="field-safety-title">
     <div class="dialog-title">
       <div><h2 id="field-safety-title">Безопасность</h2><p>Готовность к работе без интернета</p></div>
@@ -221,7 +246,7 @@
     <p id="field-readiness-overall" class="field-readiness-banner" data-state="PARTIAL">НЕ ГОТОВО ДЛЯ ИСПОЛЬЗОВАНИЯ В ЛЕСУ</p>
     <section class="safety-card" aria-labelledby="safety-position-title">
       <h3 id="safety-position-title">Координаты для помощи</h3>
-      <p id="safety-position-status" aria-live="polite">Нет сигнала GPS</p>
+      <p id="safety-position-status" class="position-status" aria-live="polite">Нет сигнала GPS</p>
       <p id="safety-coordinates" class="safety-coordinates" hidden></p>
       <p id="safety-fix-details" hidden></p>
       <p id="safety-fix-extra" hidden></p>
@@ -229,7 +254,7 @@
         <button id="safety-gps" class="inline-button" type="button">Запросить геопозицию</button>
         <button id="safety-copy" class="inline-button" type="button" disabled>Скопировать координаты WGS 84</button>
       </div>
-      <textarea id="safety-copy-fallback" aria-label="Координаты для копирования" readonly hidden></textarea>
+      <textarea id="safety-copy-fallback" class="safety-copy-fallback" aria-label="Координаты для копирования" readonly hidden></textarea>
       <p id="safety-copy-status" class="safety-copy-status" role="status" hidden></p>
       <p class="safety-caption">Передача координат зависит от доступной связи.</p>
     </section>
