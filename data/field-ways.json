@@ -1,0 +1,78 @@
+{
+  "version": "20261121-6fb0ac323a53",
+  "bytes": 16072825,
+  "chunks": [
+    {
+      "path": "/data/field-ways-20261121-6fb0ac323a53-0.bin",
+      "bytes": 6291456,
+      "sha256": "544234912bbbf5a31a38d9d9896bbd37aa06d8be70a3b8d0c071e23ce24efb8a"
+    },
+    {
+      "path": "/data/field-ways-20261121-6fb0ac323a53-1.bin",
+      "bytes": 6291456,
+      "sha256": "4795579d660da287432afa0df39721aaa946c4abb3cc9be0d447fc32f4a00c5d"
+    },
+    {
+      "path": "/data/field-ways-20261121-6fb0ac323a53-2.bin",
+      "bytes": 3489913,
+      "sha256": "735422bf4da2110fa7a7cf236dc5993614a386131468e2188c818b4cd4a47c78"
+    }
+  ],
+  "bounds": [
+    28.4157885,
+    65.691813,
+    42.5057036,
+    70.1529749
+  ],
+  "minZoom": 10,
+  "maxZoom": 13,
+  "regionRelation": 2099216,
+  "asOf": "2026-11-21",
+  "sourceTimestamp": "2026-11-21T00:03:34Z",
+  "source": "https://download.openstreetmap.fr/extracts/russia/northwestern_federal_district/murmansk_oblast-latest.osm.pbf",
+  "sourceSha256": "4fe43fb3d38c13912bfd1b50da1a6b3cd8cd766e3d51993807e0269033d6a9f9",
+  "attribution": "© OpenStreetMap contributors",
+  "attributionUrl": "https://www.openstreetmap.org/copyright",
+  "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "stats": {
+    "features": {
+      "field_ways": {
+        "bridleway": 38,
+        "construction": 2,
+        "cycleway": 12,
+        "footway": 5404,
+        "ford": 136,
+        "path": 2343,
+        "pedestrian": 99,
+        "primary": 61,
+        "residential": 437,
+        "road": 55,
+        "secondary": 68,
+        "secondary_link": 1,
+        "service": 2745,
+        "steps": 776,
+        "tertiary": 51,
+        "track": 8975,
+        "trunk": 49,
+        "unclassified": 2142
+      },
+      "field_waterways": {
+        "canal": 66,
+        "ditch": 176,
+        "drain": 466,
+        "river": 5509,
+        "stream": 10597
+      },
+      "field_crossings": {
+        "ford": 910,
+        "spring": 133
+      }
+    },
+    "tilesByZoom": {
+      "10": 730,
+      "11": 2595,
+      "12": 8094,
+      "13": 22362
+    }
+  }
+}

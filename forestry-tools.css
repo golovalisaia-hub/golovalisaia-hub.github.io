@@ -1,0 +1,38 @@
+.forestry-section { margin:0 0 12px; padding:12px; border:1px solid #d4dfd2; border-radius:13px; background:#fff; }
+.forestry-section h3 { font-size:1rem; margin:0 0 9px; }
+.forestry-buttons { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.forestry-button {
+  border:1px solid #cddace; background:#edf4e9; color:#23463a; border-radius:9px;
+  min-height:44px; padding:6px 9px; font-size:.82rem; font-weight:700;
+}
+.forestry-button:hover { background:#dfebda; }
+.forestry-note,.forestry-status { margin:8px 0 0; color:#52675d; font-size:.83rem; }
+.forestry-status { min-height:20px; }
+.forestry-records { list-style:none; margin:8px 0 0; padding:0; }
+.forestry-records:empty { margin:0; }
+.forestry-records li {
+  display:flex; align-items:center; flex-wrap:wrap; gap:7px; border-top:1px solid #e0e8df; padding:7px 0;
+}
+.forestry-records li:last-child { padding-bottom:0; }
+.forestry-records input[type=checkbox] { width:20px; height:20px; margin:0; accent-color:#126e5c; }
+.forestry-record-name { flex:1 1 108px; font-size:.86rem; font-weight:720; overflow-wrap:anywhere; }
+.forestry-record-name small { display:block; font-weight:500; color:#52675d; }
+.forestry-save-pane {
+  margin:10px 0; padding:10px; border:1px solid #badcd2; border-radius:10px; background:#ecf8f4;
+}
+.forestry-save-pane p { margin:0 0 7px; font-weight:700; }
+.forestry-save-pane label { display:block; font-size:.86rem; }
+.forestry-name {
+  display:block; min-height:43px; width:100%; margin:5px 0 8px; border:1px solid #cbdad0;
+  border-radius:8px; padding:6px 8px; background:#fff;
+}
+.forestry-draw {
+  position:absolute; left:12px; top:77px; z-index:4; max-width:min(420px,calc(100% - 24px));
+  padding:8px 10px; border:1px solid #b0d2c8; border-radius:12px; color:#183e34; background:#f9fffc;
+  box-shadow:0 3px 12px #142c2940;
+}
+.forestry-draw p { margin:4px 0 5px; font-size:.84rem; line-height:1.3; }
+.forestry-drawing .maplibregl-canvas { cursor:crosshair; }
+@media(max-width:680px) {
+  .forestry-draw { top:63px; left:8px; max-width:calc(100% - 16px); }
+}

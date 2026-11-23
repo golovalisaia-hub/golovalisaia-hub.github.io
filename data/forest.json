@@ -1,0 +1,39 @@
+{
+  "version": "2021-v200-f0cf36506462",
+  "bytes": 16672720,
+  "chunks": [
+    {
+      "path": "/data/forest-2021-v200-f0cf36506462-0.bin",
+      "bytes": 6291456,
+      "sha256": "5afab9864ecf01cb628f0efb059a86e52b35f5653afb8d1d2e66a8f530a5ecb4"
+    },
+    {
+      "path": "/data/forest-2021-v200-f0cf36506462-1.bin",
+      "bytes": 6291456,
+      "sha256": "89b39702db76980bb82041e389eb46e8bc1e8ac46e4ef263ef645c7aa3f2fa85"
+    },
+    {
+      "path": "/data/forest-2021-v200-f0cf36506462-2.bin",
+      "bytes": 4089808,
+      "sha256": "51bc4751a75094b616c359c15560e013a072ddff2caad9b07107f109c90d48ee"
+    }
+  ],
+  "source": "https://doi.org/10.5281/zenodo.7254221",
+  "attribution": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
+  "attributionUrl": "https://esa-worldcover.org/en/data-access",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "asOf": "2021-12-31",
+  "minZoom": 6,
+  "maxZoom": 11,
+  "tileSize": 256,
+  "stats": {
+    "tilesWithTreeCover": {
+      "6": 8,
+      "7": 20,
+      "8": 62,
+      "9": 206,
+      "10": 749,
+      "11": 2819
+    }
+  }
+}

@@ -1,0 +1,539 @@
+{
+  "version": "20261121-8d720b3c407a",
+  "bytes": 10656335,
+  "chunks": [
+    {
+      "path": "/data/detail-20261121-8d720b3c407a-0.bin",
+      "bytes": 6291456,
+      "sha256": "20b010cbd7e29264e6c09b37bfebdfab0ee9e6212bf83c2b079ba57d923ca8e9"
+    },
+    {
+      "path": "/data/detail-20261121-8d720b3c407a-1.bin",
+      "bytes": 4364879,
+      "sha256": "7c8b650789f52aeab66d28a0fa06b1dadf06c94f06e721521c959b2f73bd6f1e"
+    }
+  ],
+  "source": "https://download.openstreetmap.fr/extracts/russia/northwestern_federal_district/murmansk_oblast-latest.osm.pbf",
+  "sourceSha256": "4fe43fb3d38c13912bfd1b50da1a6b3cd8cd766e3d51993807e0269033d6a9f9",
+  "asOf": "2026-11-21",
+  "attribution": "© OpenStreetMap contributors, Overture Maps Foundation, Esri Community Maps contributors, Microsoft Global ML Building Footprints",
+  "attributionUrl": "https://www.openstreetmap.org/copyright",
+  "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "minZoom": 12,
+  "maxZoom": 16,
+  "sources": [
+    {
+      "id": "osm",
+      "url": "https://download.openstreetmap.fr/extracts/russia/northwestern_federal_district/murmansk_oblast-latest.osm.pbf",
+      "asOf": "2026-11-21",
+      "observedAt": "2026-11-21T00:03:34Z",
+      "sha256": "4fe43fb3d38c13912bfd1b50da1a6b3cd8cd766e3d51993807e0269033d6a9f9",
+      "attribution": "© OpenStreetMap contributors",
+      "attributionUrl": "https://www.openstreetmap.org/copyright",
+      "license": "https://opendatacommons.org/licenses/odbl/1-0/"
+    },
+    {
+      "id": "overture",
+      "asOf": "2026-11-18",
+      "observedAt": "2026-11-23",
+      "release": "2026-11-18.0",
+      "sha256": "f6134d3a4b8c54ef758310baa5b86e3843fa1e0b3fe203fff903c75aa838b22b",
+      "url": "https://stac.overturemaps.org/2026-11-18.0/buildings/building/collection.json",
+      "attribution": "Overture Maps Foundation",
+      "attributionUrl": "https://docs.overturemaps.org/attribution/#buildings",
+      "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "contributors": [
+        {
+          "name": "Esri Community Maps",
+          "license": "CC-BY-4.0",
+          "attribution": "Esri Community Maps contributors",
+          "url": "https://communitymaps.arcgis.com/",
+          "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+          "versions": [
+            "2026-09-29"
+          ]
+        },
+        {
+          "name": "Microsoft ML Buildings",
+          "license": "ODbL-1.0",
+          "attribution": "Microsoft Global ML Building Footprints",
+          "url": "https://github.com/microsoft/GlobalMLBuildingFootprints",
+          "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+          "versions": [
+            "2026-08-11"
+          ]
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "buildings": 53213,
+    "osmBuildings": 51805,
+    "numberedBuildings": 14837,
+    "houseNumbers": 15828,
+    "standaloneAddresses": 991,
+    "invalidAreas": 0,
+    "overture": {
+      "bboxRows": 153016,
+      "invalidRows": 0,
+      "regionalCandidates": 53089,
+      "duplicatesOsm": 51677,
+      "duplicatesOverture": 0,
+      "excludedOlderOsm": 4,
+      "excludedUnverifiedSource": 0,
+      "added": 1408,
+      "addedByDataset": {
+        "Esri Community Maps": 3,
+        "Microsoft ML Buildings": 1405
+      }
+    },
+    "tiles": 19947
+  },
+  "audit": {
+    "sourceCounts": "Footprints intersecting each stated survey window",
+    "nativeCounts": "Building polygons and address points decoded from the tile covering the sample center",
+    "samples": [
+      {
+        "id": "murmansk-center",
+        "name": "Центр Мурманска",
+        "center": [
+          33.08422,
+          68.97243
+        ],
+        "bounds": [
+          33.064,
+          68.964,
+          33.096,
+          68.984
+        ],
+        "osm": 691,
+        "overtureCandidates": 691,
+        "duplicatesOsm": 691,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 691,
+        "native": {
+          "12": {
+            "osm": 2609,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 675,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 214,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 65,
+            "overture": 0,
+            "houseNumbers": 41
+          },
+          "16": {
+            "osm": 7,
+            "overture": 0,
+            "houseNumbers": 3
+          }
+        }
+      },
+      {
+        "id": "murmansk-residential",
+        "name": "Жилой район Мурманска",
+        "center": [
+          33.10894,
+          68.98051
+        ],
+        "bounds": [
+          33.099,
+          68.972,
+          33.121,
+          68.986
+        ],
+        "osm": 263,
+        "overtureCandidates": 263,
+        "duplicatesOsm": 263,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 263,
+        "native": {
+          "12": {
+            "osm": 1767,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 418,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 222,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 55,
+            "overture": 0,
+            "houseNumbers": 34
+          },
+          "16": {
+            "osm": 12,
+            "overture": 0,
+            "houseNumbers": 5
+          }
+        }
+      },
+      {
+        "id": "severomorsk",
+        "name": "Североморск",
+        "center": [
+          33.41,
+          69.071
+        ],
+        "bounds": [
+          33.395,
+          69.061,
+          33.426,
+          69.08
+        ],
+        "osm": 552,
+        "overtureCandidates": 551,
+        "duplicatesOsm": 551,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 552,
+        "native": {
+          "12": {
+            "osm": 649,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 451,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 190,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 70,
+            "overture": 0,
+            "houseNumbers": 32
+          },
+          "16": {
+            "osm": 20,
+            "overture": 0,
+            "houseNumbers": 11
+          }
+        }
+      },
+      {
+        "id": "apatity",
+        "name": "Апатиты",
+        "center": [
+          33.40318,
+          67.56217
+        ],
+        "bounds": [
+          33.387,
+          67.553,
+          33.422,
+          67.573
+        ],
+        "osm": 713,
+        "overtureCandidates": 714,
+        "duplicatesOsm": 713,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 1,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 713,
+        "native": {
+          "12": {
+            "osm": 754,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 520,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 262,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 71,
+            "overture": 0,
+            "houseNumbers": 41
+          },
+          "16": {
+            "osm": 21,
+            "overture": 0,
+            "houseNumbers": 12
+          }
+        }
+      },
+      {
+        "id": "kirovsk",
+        "name": "Кировск",
+        "center": [
+          33.66634,
+          67.6071
+        ],
+        "bounds": [
+          33.653,
+          67.596,
+          33.686,
+          67.618
+        ],
+        "osm": 507,
+        "overtureCandidates": 651,
+        "duplicatesOsm": 507,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 144,
+        "combined": 651,
+        "native": {
+          "12": {
+            "osm": 157,
+            "overture": 76,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 126,
+            "overture": 55,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 106,
+            "overture": 39,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 56,
+            "overture": 17,
+            "houseNumbers": 39
+          },
+          "16": {
+            "osm": 12,
+            "overture": 4,
+            "houseNumbers": 8
+          }
+        }
+      },
+      {
+        "id": "kandalaksha",
+        "name": "Кандалакша",
+        "center": [
+          32.40634,
+          67.1564
+        ],
+        "bounds": [
+          32.395,
+          67.145,
+          32.428,
+          67.171
+        ],
+        "osm": 888,
+        "overtureCandidates": 888,
+        "duplicatesOsm": 888,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 888,
+        "native": {
+          "12": {
+            "osm": 1574,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 780,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 179,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 49,
+            "overture": 0,
+            "houseNumbers": 29
+          },
+          "16": {
+            "osm": 14,
+            "overture": 0,
+            "houseNumbers": 9
+          }
+        }
+      },
+      {
+        "id": "teriberka",
+        "name": "Териберка",
+        "center": [
+          35.1221,
+          69.1788
+        ],
+        "bounds": [
+          35.092,
+          69.162,
+          35.144,
+          69.197
+        ],
+        "osm": 180,
+        "overtureCandidates": 180,
+        "duplicatesOsm": 180,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 180,
+        "native": {
+          "12": {
+            "osm": 224,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 62,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 29,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 6,
+            "overture": 0,
+            "houseNumbers": 2
+          },
+          "16": {
+            "osm": 4,
+            "overture": 0,
+            "houseNumbers": 2
+          }
+        }
+      },
+      {
+        "id": "lapland-forest",
+        "name": "Лес в Лапландском заповеднике",
+        "center": [
+          32.58793,
+          68.05911
+        ],
+        "bounds": [
+          32.558,
+          68.048,
+          32.617,
+          68.073
+        ],
+        "osm": 5,
+        "overtureCandidates": 5,
+        "duplicatesOsm": 5,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 5,
+        "native": {
+          "12": {
+            "osm": 5,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 5,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 3,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 3,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "16": {
+            "osm": 2,
+            "overture": 0,
+            "houseNumbers": 0
+          }
+        }
+      },
+      {
+        "id": "chavanga",
+        "name": "Чаваньга",
+        "center": [
+          37.75725,
+          66.10892
+        ],
+        "bounds": [
+          37.742,
+          66.101,
+          37.777,
+          66.119
+        ],
+        "osm": 114,
+        "overtureCandidates": 114,
+        "duplicatesOsm": 114,
+        "duplicatesOverture": 0,
+        "excludedOlderOsm": 0,
+        "excludedUnverifiedSource": 0,
+        "added": 0,
+        "combined": 114,
+        "native": {
+          "12": {
+            "osm": 115,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "13": {
+            "osm": 106,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "14": {
+            "osm": 106,
+            "overture": 0,
+            "houseNumbers": 0
+          },
+          "15": {
+            "osm": 82,
+            "overture": 0,
+            "houseNumbers": 68
+          },
+          "16": {
+            "osm": 36,
+            "overture": 0,
+            "houseNumbers": 29
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "Murmansk Oblast satellite imagery",
+  "type": "baselayer",
+  "format": "webp",
+  "tileSize": 256,
+  "minZoom": 4,
+  "maxZoom": 11,
+  "bounds": [
+    28.326020047160434,
+    65.65481035901303,
+    42.59550410336175,
+    70.18252109707208
+  ],
+  "source": "https://source.coop/tge-labs/sentinel-2-quarterly-cloudless-mosaics",
+  "period": "2025 Q3",
+  "attribution": "Contains modified Copernicus Sentinel data 2025",
+  "licenseUrl": "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice",
+  "sourceGroundResolution": 10,
+  "overviewGroundResolution": 20,
+  "groundResolution": 29,
+  "coverage": {
+    "validPixels": 219103209,
+    "outlinePixels": 219103209,
+    "sourceTiles": 39,
+    "percent": 100.0
+  },
+  "version": "2b458bfc4b88",
+  "bytes": 35278031,
+  "chunks": [
+    {
+      "path": "/data/satellite-2b458bfc4b88-0.bin",
+      "bytes": 6291456,
+      "sha256": "7af0eb3fc476dfea27db5c258208e0b506627624940335b2e6bfdb031bb82b7b"
+    },
+    {
+      "path": "/data/satellite-2b458bfc4b88-1.bin",
+      "bytes": 6291456,
+      "sha256": "a7f351d9892fc7106adaeb0f72c3f050c5de3d124860e5fb09fd879f2c35e77d"
+    },
+    {
+      "path": "/data/satellite-2b458bfc4b88-2.bin",
+      "bytes": 6291456,
+      "sha256": "322c9a5c6616be51610991745b9a96cd6ed3a6b32b1a802061d8e03cdd486644"
+    },
+    {
+      "path": "/data/satellite-2b458bfc4b88-3.bin",
+      "bytes": 6291456,
+      "sha256": "24c8bda89bccaf6f50854261d5d01fe1d066295e599b5c988546bc0591011052"
+    },
+    {
+      "path": "/data/satellite-2b458bfc4b88-4.bin",
+      "bytes": 6291456,
+      "sha256": "b12d8dcee30761579c8e5c3dc6912900c340efdad901012eeb827ddbffe45e6e"
+    },
+    {
+      "path": "/data/satellite-2b458bfc4b88-5.bin",
+      "bytes": 3820751,
+      "sha256": "3a8975656323fa549ec151d93b51337572ed5b25aad29702d01e1d1ca91f3390"
+    }
+  ]
+}

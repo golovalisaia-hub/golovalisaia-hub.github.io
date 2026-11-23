@@ -1,0 +1,79 @@
+.vault-shortcut { text-decoration:none; background:#dce9d7; }
+.icon-camera { width:16px; height:12px; border:1.7px solid currentColor; border-radius:3px; }
+.icon-camera::before { content:""; position:absolute; width:6px; height:6px; border:1.5px solid currentColor; border-radius:50%; inset:1px 0 0; margin:auto; }
+.icon-camera::after { content:""; position:absolute; left:3px; top:-3px; width:6px; height:2px; border-radius:2px 2px 0 0; background:currentColor; }
+.field-nav { margin:0; padding:8px 12px; border-top:1px solid var(--line); }
+.field-nav button { min-height:44px; }
+.field-nav #safety-open { color:#235b4a; background:#e7f1e4; }
+.field-nav #track-open { color:#255a58; }
+.field-safety { width:min(calc(100% - 22px),490px); }
+.field-safety h3 { margin:0 0 7px; font-size:1rem; }
+.field-safety p { margin:6px 0; line-height:1.45; }
+.field-safety .field-readiness-banner {
+  margin:0 0 12px; padding:11px 13px; border:1px solid #e5c8a5; border-radius:11px;
+  background:#fff1db; color:#633f1a; font-size:.84rem; font-weight:760; letter-spacing:.02em;
+}
+.field-safety .field-readiness-banner[data-state=VERIFIED] { color:#214d35; border-color:#9aba9e; background:#e9f5e9; }
+.safety-card { margin:11px 0; padding:12px; border:1px solid #d4ded1; border-radius:12px; background:#fff; font-size:.9rem; }
+.safety-card summary { cursor:pointer; font-weight:720; }
+.safety-card label,.safety-preference { display:flex; align-items:flex-start; gap:8px; line-height:1.5; margin-top:10px; }
+.safety-card input { flex:none; margin:4px 0 0; accent-color:#2b694f; }
+.safety-actions { display:flex; align-items:start; flex-wrap:wrap; gap:7px; margin:9px 0 0; }
+.safety-actions .inline-button,.safety-anchors button { min-height:44px; background:#edf3eb; }
+#safety-position-status { font-weight:690; }
+.safety-caption,.safety-copy-status { color:var(--muted); font-size:.82rem; }
+.safety-coordinates { color:#174c57; font-size:1.1rem; font-weight:740; font-variant-numeric:tabular-nums; }
+#safety-copy-fallback { display:block; width:100%; margin-top:7px; min-height:52px; padding:6px; font:inherit; color:inherit; }
+.safety-anchors { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:6px 9px; align-items:center; }
+.safety-anchors p { margin:0; font-size:.81rem; color:var(--muted); overflow-wrap:anywhere; }
+.readiness-grid { margin:16px 0; font-size:.85rem; }
+.readiness-grid > div { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 10px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line); }
+.readiness-grid dt { font-weight:670; }
+.readiness-grid dd { margin:0; }
+.readiness-grid dd:last-child { grid-column:1/-1; font-size:.77rem; color:var(--muted); }
+.readiness-status { border-radius:14px; padding:3px 8px; font-weight:690; color:#4d6159; background:#e8ede6; }
+.readiness-status[data-state=VERIFIED] { color:#205740; background:#dcefe2; }
+.readiness-status[data-state=PARTIAL] { color:#77511f; background:#fff0d3; }
+.readiness-status[data-state=FAILED] { color:#8b3227; background:#ffebe4; }
+.map-north span { display:flex; align-items:center; justify-content:center; gap:3px; }
+.map-north b { font-size:.72rem; }
+.position-marker.is-stale .position-marker__dot { background:#5b6a75; box-shadow:none; }
+.position-marker.is-stale .position-marker__accuracy { background:#68798622; border-color:#717d8566; }
+.bearing-hud {
+  position:absolute; z-index:3; top:84px; left:15px; right:67px; max-width:360px; padding:6px 6px 6px 12px;
+  display:flex; align-items:center; gap:9px; border-radius:12px; border:1px solid #b8cabd; background:#f0fff6;
+  box-shadow:0 2px 9px #1c3d3b3b; color:#163e35;
+}
+.bearing-hud strong,.bearing-hud div span { display:block; }
+.bearing-hud div { flex:1; min-width:0; overflow-wrap:anywhere; }
+.bearing-hud div span { font-size:.76rem; margin-top:3px; }
+.bearing-arrow { width:21px; text-align:center; font-size:1.6rem; transform:rotate(var(--field-bearing,0deg)); }
+.workspace[data-bearing=true] .track-hud { top:156px; }
+.bearing-hud .icon-button { width:44px; height:44px; background:transparent; font-size:1.25rem; }
+@media(max-width:680px) {
+  .field-nav { order:3; flex:none; padding:5px 8px max(5px,env(safe-area-inset-bottom)); background:var(--paper); }
+  .field-nav button { min-height:44px; font-size:.8rem; white-space:normal; }
+  .sidebar-head .brand-row { margin-bottom:6px; }
+  .sidebar-head .brand-actions > * { width:42px; height:42px; }
+  .region-library { padding-bottom:0; height:153px; }
+  .region-library[data-destination=true] { height:208px; }
+  .region-library[data-route=true] { height:214px; }
+  .region-library[data-expanded=true] { height:min(47dvh,435px); }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) { height:67px; }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) .panel-content { padding-top:0; }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) .region-card {
+    display:flex; align-items:center; justify-content:space-between; gap:6px; padding:0 4px; background:none; border:none;
+  }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) .region-card-heading { align-items:center; margin:0; }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) .region-card p { display:none; }
+  .region-library[data-ready=true]:not([data-expanded=true],[data-destination=true],[data-route=true],[data-search=true],[data-notice=true]) .region-card .primary-button {
+    min-height:35px; width:auto; margin:0; padding:6px 9px; font-size:.76rem;
+  }
+  .bearing-hud { top:67px; left:8px; right:60px; }
+  .workspace[data-bearing=true] .track-hud { top:138px; }
+}
+@media(max-height:520px) and (max-width:680px) and (orientation:landscape) {
+  .workspace .field-nav { order:unset; }
+  .workspace .sidebar-head .brand-row { display:flex; }
+  .workspace .region-library { height:auto; }
+}

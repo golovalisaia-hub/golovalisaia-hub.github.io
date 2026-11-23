@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; manifest-src 'self'; connect-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'">
+  <meta name="theme-color" content="#182e28">
+  <meta name="description" content="Локальное шифрование фотографий в приложении «Тихие карты».">
+  <title>Фотосейф — Тихие карты</title>
+  <link rel="icon" href="/icons/app-192.png">
+  <link rel="apple-touch-icon" href="/icons/app-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/vault.css">
+  <script type="module" src="/vault.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-content">
+      <a class="brand" href="/" aria-label="Тихие карты, главная">
+        <img src="/icons/app-192.png" alt="" width="38" height="38">
+        <span>Тихие карты</span>
+      </a>
+      <nav class="mode-switch" aria-label="Раздел приложения">
+        <a href="/"><span class="icon icon-map" aria-hidden="true"></span>Карты</a>
+        <a href="/vault/" aria-current="page"><span class="icon icon-lock" aria-hidden="true"></span>Фотосейф</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="layout">
+    <header class="banner">
+      <div class="banner-mark" aria-hidden="true"><span class="icon icon-lock"></span></div>
+      <div class="banner-copy">
+        <h1>Фотосейф</h1>
+        <p>Фотографии шифруются на этом устройстве и открываются по паролю.</p>
+      </div>
+      <div id="vault-banner-actions" class="banner-actions" hidden>
+        <span id="vault-state" class="vault-state"><span aria-hidden="true"></span>Закрыт</span>
+        <button id="vault-lock" type="button" class="button lock-button" hidden>Заблокировать</button>
+      </div>
+    </header>
+
+    <div class="columns">
+      <div class="main-column">
+        <p id="vault-message" class="notice" role="status" hidden></p>
+        <section id="vault-unavailable" class="panel" aria-labelledby="vault-unavailable-title">
+          <h2 id="vault-unavailable-title">Подготовка фотосейфа</h2>
+          <p id="vault-unavailable-text" class="muted" role="status">Проверяем доступ к локальному хранилищу…</p>
+          <a id="vault-prepare" class="button secondary" href="/" hidden>Перейти к картам</a>
+          <noscript><p>Для шифрования фотографий включите JavaScript.</p></noscript>
+        </section>
+
+        <section id="vault-setup-panel" class="panel" aria-labelledby="vault-setup-title" hidden>
+          <h2 id="vault-setup-title">Создать фотосейф</h2>
+          <p class="muted">Сохраните пароль в надёжном месте. Он нужен и для открытия фотосейфа, и для восстановления из копии.</p>
+          <form id="vault-setup-form" method="post" autocomplete="off">
+            <fieldset id="vault-setup-fields" disabled>
+              <label class="input-label" for="vault-new-password">Пароль</label>
+              <div class="password-row">
+                <input id="vault-new-password" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="256" aria-describedby="vault-password-rule" required>
+                <button id="vault-show-password" class="button secondary" type="button" aria-pressed="false">Показать</button>
+              </div>
+              <p id="vault-password-rule" class="input-note">От 20 символов без учёта пробелов, из них хотя бы 10 разных.</p>
+              <button id="vault-generate-password" class="button secondary" type="button">Сгенерировать пароль</button>
+              <label class="input-label" for="vault-confirm-password">Повторите пароль</label>
+              <input id="vault-confirm-password" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="256" required>
+              <div class="form-actions">
+                <button id="vault-create" class="button primary" type="submit">Создать</button>
+                <button id="vault-show-restore" class="button quiet" type="button">У меня есть резервная копия</button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+
+        <section id="vault-unlock-panel" class="panel" aria-labelledby="vault-unlock-title" hidden>
+          <h2 id="vault-unlock-title">Открыть фотосейф</h2>
+          <form id="vault-unlock-form" method="post" autocomplete="off">
+            <fieldset id="vault-unlock-fields" disabled>
+              <label class="input-label" for="vault-password">Пароль</label>
+              <input id="vault-password" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="256" required>
+              <div class="form-actions">
+                <button id="vault-unlock" class="button primary" type="submit">Открыть</button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+
+        <section id="vault-restore-panel" class="panel" aria-labelledby="vault-restore-title" hidden>
+          <h2 id="vault-restore-title">Восстановить из копии</h2>
+          <p class="muted">Выберите файл .qmvault и введите пароль от него.</p>
+          <form id="vault-restore-form" method="post" autocomplete="off">
+            <fieldset id="vault-restore-fields" disabled>
+              <label class="input-label" for="vault-backup-file">Резервная копия</label>
+              <input id="vault-backup-file" type="file" accept=".qmvault,application/octet-stream" required>
+              <label class="input-label" for="vault-backup-password">Пароль от копии</label>
+              <input id="vault-backup-password" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="256" required>
+              <div class="form-actions">
+                <button id="vault-restore" class="button primary" type="submit">Восстановить</button>
+                <button id="vault-back-to-setup" class="button quiet" type="button">Назад</button>
+              </div>
+            </fieldset>
+          </form>
+        </section>
+
+        <section id="vault-library" class="panel" aria-labelledby="vault-library-title" hidden>
+          <div class="panel-head">
+            <h2 id="vault-library-title">Фотографии</h2>
+            <span id="vault-file-count" class="muted"></span>
+          </div>
+          <div class="library-actions">
+            <button id="vault-import" type="button" class="button primary"><span class="icon icon-plus" aria-hidden="true"></span>Добавить фото</button>
+            <input id="vault-files" type="file" multiple accept="image/*,.heic,.heif" hidden>
+            <button id="vault-backup" type="button" class="button secondary"><span class="icon icon-download" aria-hidden="true"></span>Подготовить копию</button>
+            <a id="vault-save-backup" class="button secondary" download="тихие-карты.qmvault" hidden>Скачать копию</a>
+          </div>
+          <p class="input-note">JPEG, PNG, WebP, HEIC, HEIF, AVIF. До 20 МБ на фото и 128 МБ на весь сейф.</p>
+          <p id="vault-empty" class="empty">Здесь появятся добавленные фотографии.</p>
+          <ul id="vault-photo-list" class="photo-list"></ul>
+        </section>
+      </div>
+
+      <aside class="privacy-card" aria-labelledby="vault-privacy-title">
+        <div class="privacy-heading">
+          <span class="icon icon-lock" aria-hidden="true"></span>
+          <h2 id="vault-privacy-title">Хранение на устройстве</h2>
+        </div>
+        <p>Имена и содержимое файлов хранятся зашифрованными. Фотосейф закрывается в фоне и после 90 секунд бездействия.</p>
+        <p>Данные браузера могут очиститься. Храните зашифрованную копию отдельно.</p>
+        <hr>
+        <h3>Оригиналы в приложении «Фото»</h3>
+        <p>При добавлении оригиналы остаются в «Фото». После проверки резервной копии их можно скрыть там вручную.</p>
+      </aside>
+    </div>
+  </main>
+
+  <dialog id="vault-preview" aria-labelledby="vault-preview-name">
+    <header class="panel-head">
+      <h2 id="vault-preview-name" dir="auto"></h2>
+      <button type="button" class="button secondary close-button" id="vault-preview-close" aria-label="Закрыть фото">×</button>
+    </header>
+    <div class="preview-frame">
+      <img id="vault-preview-image" alt="Открытая фотография" hidden>
+      <p id="vault-preview-status" role="status" hidden></p>
+    </div>
+    <div id="vault-preview-actions" class="preview-actions">
+      <button type="button" class="button secondary" id="vault-preview-save" disabled>Скачать оригинал</button>
+      <button type="button" class="button quiet danger-text" id="vault-preview-delete">Удалить из сейфа</button>
+    </div>
+    <div id="vault-delete-confirm" class="confirmation" hidden>
+      <p>Удалить эту фотографию из сейфа?</p>
+      <div class="preview-actions">
+        <button type="button" class="button danger" id="vault-confirm-delete">Удалить</button>
+        <button type="button" class="button secondary" id="vault-cancel-delete">Отмена</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

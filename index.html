@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#182e28">
+  <meta name="description" content="Офлайн-карта и навигация по Мурманской области с зашифрованным фотосейфом.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Тихие карты</title>
+  <link rel="icon" href="/icons/app-192.png">
+  <link rel="apple-touch-icon" href="/icons/app-180.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" href="/field-safety.css">
+  <link rel="stylesheet" href="/field-journal.css">
+  <link rel="stylesheet" href="/forestry-tools.css">
+  <link rel="stylesheet" href="/privacy-lock.css">
+  <script type="module" src="/region-app.js"></script>
+</head>
+<body>
+  <section id="privacy-screen" class="privacy-screen" aria-label="Калькулятор" tabindex="-1">
+    <div class="privacy-shell">
+      <div id="calculator">
+        <h1>Калькулятор</h1>
+        <output id="calculator-display">0</output>
+        <div class="calculator-keys" aria-label="Клавиши калькулятора">
+          <button type="button" data-key="clear" class="calc-function">AC</button>
+          <button type="button" data-key="backspace" class="calc-function" aria-label="Стереть последнюю цифру">⌫</button>
+          <button type="button" data-key="percent" class="calc-function">%</button>
+          <button type="button" data-key="/" class="calc-operation" aria-label="Разделить">÷</button>
+          <button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+          <button type="button" data-key="*" class="calc-operation" aria-label="Умножить">×</button>
+          <button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+          <button type="button" data-key="-" class="calc-operation" aria-label="Вычесть">−</button>
+          <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+          <button type="button" data-key="+" class="calc-operation" aria-label="Сложить">+</button>
+          <button type="button" data-key="0" class="calc-zero">0</button><button type="button" data-key=".">.</button>
+          <button type="button" data-key="=" class="calc-operation">=</button>
+        </div>
+        <button id="privacy-setup-open" class="privacy-link" type="button" hidden>Настроить доступ</button>
+        <button id="privacy-recovery-open" class="privacy-link" type="button" hidden>Восстановить доступ</button>
+      </div>
+      <form id="privacy-form" hidden>
+        <h1 id="privacy-form-title">Код для карт</h1>
+        <p>Задай код из 4–20 цифр для карт и зашифрованных полевых записей.</p>
+        <label id="privacy-recovery-label" hidden>Код восстановления<input id="privacy-recovery" type="password" autocomplete="off" spellcheck="false"></label>
+        <label>Новый код<input id="privacy-pin" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
+        <label>Повтори код<input id="privacy-pin-confirm" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
+        <button id="privacy-submit" class="privacy-primary" type="submit">Создать код</button>
+        <button id="privacy-cancel" class="privacy-link" type="button">Отмена</button>
+      </form>
+      <section id="privacy-recovery-card" hidden>
+        <h1>Сохрани код восстановления</h1>
+        <p>Он нужен, если забудешь числовой код. Запиши его отдельно от телефона.</p>
+        <output id="privacy-recovery-value"></output>
+        <button id="privacy-copy-recovery" class="privacy-link" type="button">Скопировать код восстановления</button>
+        <button id="privacy-enter" class="privacy-primary" type="button">Открыть карты</button>
+      </section>
+      <p id="privacy-status" role="status"></p>
+    </div>
+  </section>
+  <main class="workspace" hidden>
+    <div class="sidebar">
+      <header class="sidebar-head">
+        <div class="brand-row">
+          <a class="brand" href="/" aria-label="Тихие карты, главная">
+            <img src="/icons/app-192.png" alt="" width="38" height="38">
+            <span>Тихие карты</span>
+          </a>
+          <div class="brand-actions">
+            <a id="vault-link" class="icon-button about-button vault-shortcut" href="/vault/" aria-label="Фотосейф" title="Фотосейф"><span class="icon icon-camera" aria-hidden="true"></span></a>
+            <button id="lock-now" class="icon-button about-button" type="button" aria-label="Заблокировать карты" title="Заблокировать"><span class="icon icon-lock" aria-hidden="true"></span></button>
+            <button id="about" class="icon-button about-button" type="button" aria-label="Установка и приватность" title="Установка и приватность">?</button>
+          </div>
+        </div>
+        <div class="search">
+          <span class="icon icon-search" aria-hidden="true"></span>
+          <input id="region-search" type="search" autocomplete="off" spellcheck="false" placeholder="Поиск адреса или координат" aria-label="Найти место в Мурманской области">
+          <button id="clear-search" class="icon-button clear" type="button" aria-label="Очистить поиск" hidden>×</button>
+        </div>
+      </header>
+
+      <section class="library region-library" aria-label="Мурманская область" data-expanded="false">
+        <button id="sheet-toggle" class="sheet-toggle" type="button" aria-label="Развернуть панель карты" aria-expanded="false"><span></span></button>
+        <section class="panel-content">
+          <div id="notice" class="notice" aria-live="polite" hidden></div>
+          <article class="region-card">
+            <div class="region-card-heading">
+              <div>
+                <h1>Мурманская область</h1>
+                <p id="offline-label">Подготовка карты…</p>
+              </div>
+              <button id="delete-region" class="icon-button clear" type="button" hidden aria-label="Удалить скачанную карту" title="Удалить скачанную карту">×</button>
+            </div>
+            <button id="download-region" class="primary-button" type="button" disabled>Скачать Мурманскую область</button>
+          </article>
+          <div id="progress-region" hidden aria-label="Скачивание данных" aria-live="polite">
+            <div class="progress-card">
+              <p id="progress-copy"></p>
+              <button id="pause-download" type="button" class="inline-button">Пауза</button>
+              <progress max="100" value="0" id="download-progress" aria-label="Прогресс скачивания"></progress>
+            </div>
+          </div>
+
+          <section id="destination-card" class="destination-card" aria-labelledby="destination-name" hidden>
+            <div class="region-card-heading">
+              <div><h2 id="destination-name"></h2><p id="destination-detail"></p></div>
+              <button id="close-destination" class="icon-button clear" type="button" aria-label="Закрыть маршрут">×</button>
+            </div>
+            <div class="route-modes" role="group" aria-label="Способ передвижения">
+              <button id="route-mode-car" type="button" aria-pressed="true">На машине</button>
+              <button id="route-mode-walk" type="button" aria-pressed="false">Пешком</button>
+            </div>
+            <p id="route-status" class="route-status" role="status" hidden></p>
+            <button id="enable-navigation" class="primary-button" type="button">Скачать навигацию</button>
+            <button id="build-route" class="primary-button" type="button" hidden>Маршрут от меня</button>
+            <div id="route-summary" hidden>
+              <div class="route-stats"><strong id="route-duration"></strong><span id="route-distance"></span><small id="route-kind">На машине · без учёта пробок</small></div>
+              <p id="route-approach" class="route-approach" hidden></p>
+              <p id="route-profile-note" class="route-approach" hidden></p>
+              <button id="start-guidance" class="primary-button" type="button">Начать поездку</button>
+              <button id="stop-guidance" class="primary-button stop-guidance" type="button" hidden>Завершить поездку</button>
+              <details class="route-instructions"><summary>Все повороты</summary><ol id="route-steps"></ol></details>
+            </div>
+          </section>
+          <div class="list-heading"><h2 id="list-heading">Быстрый переход</h2></div>
+          <ul id="places" class="city-list" aria-labelledby="list-heading"></ul>
+          <div id="empty" class="empty" hidden>Ничего не найдено. Попробуй название без сокращений.</div>
+        </section>
+      </section>
+      <nav class="mode-switch field-nav" aria-label="Полевые инструменты">
+        <button id="track-open" type="button" aria-haspopup="dialog" aria-controls="track-dialog"><span class="icon icon-track" aria-hidden="true"></span>Мой путь</button>
+        <button id="forestry-open" type="button" aria-haspopup="dialog">Лес и измерения</button>
+        <button id="safety-open" type="button" aria-haspopup="dialog" aria-controls="field-safety">Безопасность</button>
+      </nav>
+      <footer class="sidebar-foot">
+        <button id="install" type="button" class="install-button"><span class="icon icon-phone" aria-hidden="true"></span> На экран «Домой»</button>
+        <span class="private-note"><span class="icon icon-lock" aria-hidden="true"></span> Координаты на устройстве</span>
+      </footer>
+    </div>
+
+    <section class="map-area" aria-label="Карта Мурманской области">
+      <div id="map" class="map-canvas"></div>
+      <div class="map-top">
+        <div class="map-caption">
+          <span class="caption-pin" aria-hidden="true">+</span>
+          <div><strong id="map-title">Мурманская область</strong><span id="map-state">Обзор области</span></div>
+        </div>
+        <div class="map-side">
+          <span class="connection" id="connection"><span aria-hidden="true"></span><span id="connection-text">В сети</span></span>
+          <button id="map-layers" class="map-layer-button" type="button" aria-label="Слои карты" aria-haspopup="dialog" aria-controls="layers-dialog"><span class="icon icon-layers" aria-hidden="true"></span>Слои</button>
+        </div>
+      </div>
+      <div id="map-loading" class="map-message" role="status">Открываем карту…</div>
+      <div id="position-message" class="position-message" role="status" hidden></div>
+      <div id="pin-hint" class="position-message" role="status" hidden>Коснись карты, чтобы указать финиш.</div>
+      <div id="track-hud" class="track-hud" hidden>
+        <strong id="track-hud-title"></strong><span id="track-hud-detail"></span>
+      </div>
+      <div id="turn-banner" class="turn-banner" hidden role="status">
+        <span id="turn-glyph" aria-hidden="true">↑</span>
+        <div><strong id="turn-label">Начало маршрута</strong><span id="turn-distance"></span></div>
+      </div>
+      <div id="bearing-hud" class="bearing-hud" hidden>
+        <span id="bearing-arrow" class="bearing-arrow" aria-hidden="true">↑</span>
+        <div><strong id="bearing-title"></strong><span id="bearing-detail"></span></div>
+        <button id="bearing-stop" class="icon-button" type="button" aria-label="Остановить указание направления">×</button>
+      </div>
+      <div class="map-actions" aria-label="Управление картой">
+        <button id="my-position" type="button" aria-label="Моё местоположение" title="Моё местоположение" aria-pressed="false"><span class="icon icon-position" aria-hidden="true"></span></button>
+        <button id="map-north" class="map-north" type="button" aria-label="Север сверху" title="Север сверху"><span aria-hidden="true">↑<b>С</b></span></button>
+        <button id="pick-destination" type="button" aria-label="Указать финиш на карте" title="Указать финиш на карте" aria-pressed="false"><span class="icon icon-pin" aria-hidden="true"></span></button>
+        <div class="zoom-buttons">
+          <button id="zoom-in" type="button" aria-label="Приблизить" title="Приблизить">+</button>
+          <button id="zoom-out" type="button" aria-label="Отдалить" title="Отдалить">−</button>
+        </div>
+        <button id="fit-region" type="button" aria-label="Показать всю область" title="Показать всю область"><span class="icon icon-fit" aria-hidden="true"></span></button>
+      </div>
+      <div class="map-credit">
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>
+        <span> · <a href="https://protomaps.com/" target="_blank" rel="noreferrer">Protomaps</a></span>
+        <span id="overture-credit" hidden> · <button type="button" data-open-layers>Overture Maps</button></span>
+        <span id="forest-credit" hidden> · <button type="button" data-open-layers>ESA WorldCover</button></span>
+        <span id="satellite-credit" hidden> · <button type="button" data-open-layers>Copernicus Sentinel‑2</button></span>
+        <span id="terrain-credit" hidden> · <button type="button" data-open-layers>Copernicus DEM</button></span>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="first-field-use" class="field-safety" aria-labelledby="first-field-title">
+    <div class="dialog-title"><h2 id="first-field-title">Перед выездом</h2></div>
+    <p class="field-readiness-banner" data-state="PARTIAL">ТРЕБУЕТСЯ ПРОВЕРКА НА ТЕЛЕФОНЕ</p>
+    <p>Скачай карту. На своём телефоне включи авиарежим, полностью закрой приложение и открой его снова. Проверь карту, GPS на улице и короткую запись пути.</p>
+    <p>В лесу точность GPS может снижаться. При блокировке экрана запись в браузере останавливается. Состояние троп и возможность пройти нужно оценивать на месте.</p>
+    <div class="safety-actions">
+      <button id="first-field-confirm" class="primary-button" type="button">Понятно</button>
+      <button id="first-field-check" class="inline-button" type="button">Открыть проверку</button>
+    </div>
+  </dialog>
+
+  <dialog id="field-safety" class="field-safety" aria-labelledby="field-safety-title">
+    <div class="dialog-title">
+      <div><h2 id="field-safety-title">Безопасность</h2><p>Готовность к работе без интернета</p></div>
+      <button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <p id="field-readiness-overall" class="field-readiness-banner" data-state="PARTIAL">НЕ ГОТОВО ДЛЯ ИСПОЛЬЗОВАНИЯ В ЛЕСУ</p>
+    <section class="safety-card" aria-labelledby="safety-position-title">
+      <h3 id="safety-position-title">Координаты для помощи</h3>
+      <p id="safety-position-status" aria-live="polite">Нет сигнала GPS</p>
+      <p id="safety-coordinates" class="safety-coordinates" hidden></p>
+      <p id="safety-fix-details" hidden></p>
+      <p id="safety-fix-extra" hidden></p>
+      <div class="safety-actions">
+        <button id="safety-gps" class="inline-button" type="button">Запросить геопозицию</button>
+        <button id="safety-copy" class="inline-button" type="button" disabled>Скопировать координаты WGS 84</button>
+      </div>
+      <textarea id="safety-copy-fallback" aria-label="Координаты для копирования" readonly hidden></textarea>
+      <p id="safety-copy-status" class="safety-copy-status" role="status" hidden></p>
+      <p class="safety-caption">Передача координат зависит от доступной связи.</p>
+    </section>
+    <section class="safety-card" aria-labelledby="safety-return-title">
+      <h3 id="safety-return-title">Возвращение</h3>
+      <div class="safety-anchors">
+        <button id="safety-return-car" class="inline-button" type="button" disabled>Вернуться к машине</button>
+        <p id="safety-car-status">Машина не отмечена.</p>
+        <button id="safety-return-start" class="inline-button" type="button" disabled>Вернуться к старту</button>
+        <p id="safety-start-status">Старт не отмечен.</p>
+      </div>
+      <div class="safety-actions">
+        <button id="safety-retrace" class="inline-button" type="button" disabled>Идти обратно по записанному пути</button>
+        <button id="safety-field-journal" class="inline-button" type="button">Открыть «Мой путь»</button>
+        <button id="safety-compass" class="inline-button" type="button">Включить компас телефона</button>
+      </div>
+      <p id="safety-compass-status" hidden role="status"></p>
+      <p class="safety-caption">Расстояние и азимут к точке считаются по прямой. Учитывай воду, склоны и закрытые участки.</p>
+    </section>
+    <dl id="field-readiness-list" class="readiness-grid"></dl>
+    <details class="safety-card" id="phone-verification">
+      <summary>Проверка на телефоне</summary>
+      <p>Отметь после личной проверки на устройстве, с которым поедешь. Перед проверкой скачай карту и пешие маршруты.</p>
+      <label><input type="checkbox" value="startup"> Запустил с экрана «Домой» в авиарежиме после полного закрытия. Открыл дома, тропы и дальний район.</label>
+      <label><input type="checkbox" value="gps"> Получил свежую точку GPS на улице и увидел предупреждение при потере сигнала.</label>
+      <label><input type="checkbox" value="field"> Сохранил машину, старт и короткий трек. Открыл их после перезапуска без сети.</label>
+      <label><input type="checkbox" value="return"> Проверил азимут к машине и старту, возврат по треку и пеший маршрут.</label>
+      <label><input type="checkbox" value="lock"> Разблокировал данные без сети и проверил остановку записи при блокировке экрана.</label>
+      <label><input type="checkbox" value="battery"> Проверил расход заряда и сохранность карты после перезапуска телефона.</label>
+      <div class="safety-actions">
+        <button id="phone-confirm" class="primary-button" type="button" disabled>Подтвердить личную проверку</button>
+        <button id="phone-reset" class="inline-button" type="button" hidden>Сбросить подтверждение</button>
+      </div>
+      <p class="safety-caption">Подтверждение относится к текущей сборке и скачанным пакетам.</p>
+    </details>
+    <label class="safety-card safety-preference"><input id="field-wake" type="checkbox" checked> Удерживать экран включённым во время записи или возврата. Это расходует заряд, точность GPS не меняется.</label>
+  </dialog>
+
+  <dialog id="track-dialog" aria-labelledby="track-heading">
+    <div class="dialog-title">
+      <div><h2 id="track-heading">Мой путь</h2><p>Запись пешего пути и возврат без сети</p></div>
+      <button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <section class="track-prep" aria-labelledby="track-prep-title">
+      <h3 id="track-prep-title">Офлайн-навигация</h3>
+      <p id="track-download-status">Проверяем скачанные данные…</p>
+      <button id="track-prepare" type="button" class="layer-download" disabled>Скачать карту и пешие маршруты</button>
+    </section>
+    <p id="track-coordinate" class="track-coordinate" hidden></p>
+    <section class="track-session" aria-labelledby="track-session-title">
+      <h3 id="track-session-title">Записанный путь</h3>
+      <p id="track-state" role="status">Открываем хранилище трека…</p>
+      <div class="track-tools">
+        <button id="track-start" class="primary-button" type="button" disabled>Начать запись</button>
+        <button id="track-pause" class="primary-button stop-guidance" type="button" hidden>Пауза записи</button>
+        <button id="track-stop" class="inline-button" type="button" hidden>Завершить и сохранить трек</button>
+        <button id="track-back" class="primary-button" type="button" hidden>Назад по треку</button>
+        <button id="track-stop-back" class="primary-button stop-guidance" type="button" hidden>Завершить возврат</button>
+        <button id="track-show" class="inline-button" type="button" hidden>Показать на карте</button>
+        <button id="track-delete" class="inline-button" type="button" hidden>Удалить текущую запись</button>
+      </div>
+      <div id="track-delete-confirmation" class="track-confirmation" hidden>
+        <p>Удалить записанный путь с устройства?</p>
+        <button id="track-confirm-delete" class="layer-remove" type="button">Удалить</button>
+        <button id="track-cancel-delete" class="inline-button" type="button">Отмена</button>
+      </div>
+    </section>
+    <details class="field-journal" id="field-journal">
+      <summary>Сохранённые места и треки</summary>
+      <div class="field-actions">
+        <label>Название места<input id="field-name" maxlength="70" autocomplete="off"></label>
+        <label>Заметка<textarea id="field-note" maxlength="800" rows="2"></textarea></label>
+        <div class="field-buttons">
+          <button id="field-gps" class="layer-download" type="button" disabled>Определить координаты</button>
+          <button id="field-save" class="layer-download" type="button" disabled>Сохранить место</button>
+          <button id="field-car" class="layer-download" type="button" disabled>Отметить машину</button>
+          <button id="field-archive" class="layer-download" type="button" disabled>Сохранить трек</button>
+          <button id="field-export" class="layer-download" type="button" disabled>Скачать GPX</button>
+        </div>
+        <p class="track-privacy">В экспортированном GPX координаты открыты.</p>
+        <p id="field-status" class="track-privacy" role="status" hidden></p>
+        <ul id="field-saved" class="field-saved"></ul>
+      </div>
+    </details>
+    <p class="track-privacy">Путь хранится на этом устройстве. Держи приложение открытым во время записи. При паузе или потере GPS следующий участок сохраняется отдельно.</p>
+  </dialog>
+
+  <dialog id="layers-dialog" aria-labelledby="layers-title">
+    <div class="dialog-title">
+      <div><h2 id="layers-title">Слои карты</h2><p>Мурманская область</p></div>
+      <button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <div class="layer-modes" role="group" aria-label="Вид карты">
+      <button type="button" data-layer-mode="map" aria-pressed="true">Схема</button>
+      <button type="button" data-layer-mode="forest" aria-pressed="false">Лес</button>
+      <button type="button" data-layer-mode="topographic" aria-pressed="false">Рельеф</button>
+      <button type="button" data-layer-mode="satellite" aria-pressed="false">Спутник</button>
+      <button type="button" data-layer-mode="hybrid" aria-pressed="false">Гибрид</button>
+      <button type="button" data-layer-mode="dark" aria-pressed="false">Тёмная</button>
+      <button type="button" data-layer-mode="outdoor" aria-pressed="false">Высокий контраст</button>
+    </div>
+    <label id="forest-option" class="forest-option" hidden><input id="show-forest" type="checkbox" checked>Подробный слой леса</label>
+    <div class="layer-card">
+      <div><h3>Дома, лес и тропы</h3><p id="details-status">Подготовка…</p></div>
+      <button id="download-details" class="layer-download" type="button" aria-label="Скачать дома, лес и тропы" disabled>Скачать</button>
+      <button id="remove-details" class="layer-remove" type="button" hidden aria-label="Удалить скачанные дома, лес и тропы">Удалить</button>
+      <p class="layer-description">Коснись дома, тропы или переправы, чтобы посмотреть сведения из источника.</p>
+    </div>
+    <div class="layer-card">
+      <div><h3>Рельеф и горизонтали</h3><p id="topography-status">Подготовка…</p></div>
+      <button id="download-topography" class="layer-download" type="button" aria-label="Скачать рельеф и горизонтали" disabled>Скачать</button>
+      <button id="remove-topography" class="layer-remove" type="button" hidden aria-label="Удалить скачанный рельеф">Удалить</button>
+      <p class="layer-description">Тени рельефа и высоты в метрах.</p>
+    </div>
+    <div class="layer-card">
+      <div><h3>Снимки со спутника</h3><p id="satellite-status">Подготовка…</p></div>
+      <button id="download-satellite" class="layer-download" type="button" aria-label="Скачать спутниковые снимки" disabled>Скачать</button>
+      <button id="remove-satellite" class="layer-remove" type="button" hidden aria-label="Удалить скачанные снимки">Удалить</button>
+      <p class="layer-description">Региональные снимки. Гибрид показывает дороги, подписи и контуры домов. Детальные снимки требуют отдельного источника с правом офлайн-хранения.</p>
+    </div>
+    <div id="layer-transfer" class="progress-card layer-progress" hidden>
+      <p id="layer-progress-label" aria-live="polite"></p>
+      <button id="layer-pause" type="button" class="inline-button">Пауза</button>
+      <progress id="layer-progress" max="100" value="0" aria-label="Загрузка слоя"></progress>
+    </div>
+    <p id="layer-notice" class="layer-notice" role="status" hidden></p>
+    <details class="layer-attribution">
+      <summary>Источники и дата снимков</summary>
+      <p>Контуры и номера домов из <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap (ODbL)</a>.</p>
+      <p>Часть контуров из Overture Maps Foundation, Esri Community Maps и Microsoft Global ML Building Footprints. <a href="https://docs.overturemaps.org/attribution/#buildings" target="_blank" rel="noreferrer">Источники и ODbL</a>.</p>
+      <p><a href="https://esa-worldcover.org/en/data-access" target="_blank" rel="noreferrer">© ESA WorldCover project 2021</a> / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium. На схеме выделен древесный покров. <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>.</p>
+      <p><span id="satellite-attribution"></span> <a href="https://source.coop/tge-labs/sentinel-2-quarterly-cloudless-mosaics" target="_blank" rel="noreferrer">Sentinel‑2 Quarterly Cloudless Mosaics</a>. Для отдельных домов используй схему или гибрид.</p>
+      <p>Рельеф и горизонтали построены по <a href="https://registry.opendata.aws/copernicus-dem/" target="_blank" rel="noreferrer">Copernicus DEM GLO-30</a>. <span id="terrain-attribution"></span></p>
+    </details>
+  </dialog>
+
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-title"><h2 id="help-title">Установка и приватность</h2><button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button></div>
+    <p>В Safari нажми «Поделиться», затем «На экран „Домой“» и «Добавить». Запусти приложение с иконки и скачай всю область там.</p>
+    <p>После скачивания введи город, улицу и номер дома или поставь финиш на карте. Нажми «Маршрут от меня» и дай доступ к GPS. Адрес, координаты и маршрут остаются в памяти устройства.</p>
+    <p>Перед походом открой «Мой путь», скачай пешие маршруты и проверь карту в авиарежиме. На схеме и гибриде нанесённые тропы показаны штрихами. Начни запись у места, к которому хочешь вернуться.</p>
+    <p>Для поиска по координатам введи широту и долготу через запятую, например 68.97070, 33.08270.</p>
+    <p>Подсказки работают, пока приложение открыто. Карта не получает данные о пробках и временных перекрытиях. Следуй дорожным знакам.</p>
+    <p>При первом входе и загрузке хостинг видит IP и запросы на скачивание. Геолокацией системы управляют настройки iPhone.</p>
+    <p>Браузер может освободить место, удалив скачанные карты. Перед поездкой открой нужную карту в авиарежиме.</p>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">Данные OpenStreetMap · ODbL</a>
+  </dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <div class="dialog-title"><h2 id="delete-title">Удалить карту и маршруты?</h2><button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button></div>
+    <p>Эта кнопка удалит подробную схему, дома, лес и пакеты маршрутов. Управление снимками и рельефом доступно в «Слои».</p><button id="confirm-delete" class="primary-button danger-button" type="button">Удалить с устройства</button>
+  </dialog>
+</body>
+</html>

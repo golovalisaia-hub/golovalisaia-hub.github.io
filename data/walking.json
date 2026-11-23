@@ -1,0 +1,29 @@
+{
+  "version": "20261121-3d09af7f0def",
+  "profile": "walk",
+  "bytes": 8264089,
+  "chunks": [
+    {
+      "path": "/data/walking-20261121-3d09af7f0def-0.bin",
+      "bytes": 6291456,
+      "sha256": "eeb5c16ec514a586c9b34e257c9d2d284e0405604bce224d95b98fc882f95d85"
+    },
+    {
+      "path": "/data/walking-20261121-3d09af7f0def-1.bin",
+      "bytes": 1972633,
+      "sha256": "4952fdb25d70f63e3d5f71eb789081c08b1c482a6394a3a3450b1ca6c9509599"
+    }
+  ],
+  "asOf": "2026-11-21",
+  "source": "https://download.openstreetmap.fr/extracts/russia/northwestern_federal_district/murmansk_oblast-latest.osm.pbf",
+  "sourceSha256": "4fe43fb3d38c13912bfd1b50da1a6b3cd8cd766e3d51993807e0269033d6a9f9",
+  "attribution": "© OpenStreetMap contributors",
+  "attributionUrl": "https://www.openstreetmap.org/copyright",
+  "license": "https://opendatacommons.org/licenses/odbl/1-0/",
+  "stats": {
+    "nodes": 475807,
+    "edges": 985560,
+    "addresses": 0,
+    "blocked": 0
+  }
+}
