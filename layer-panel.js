@@ -13,6 +13,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   const manifests = {};
   const assets = {};
   const savedBytes = {};
+  const opening = new Set();
   let mode = 'map';
   let view = 'map';
   let requestedMode;
@@ -119,20 +120,53 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
     getMap()?.updateLayers(assets,{mode,forest:el('show-forest').checked});
   }
 
+  function selectMode(next) {
+    const requirement = groupForMode[next];
+    const group = groups[requirement];
+    if (group && !complete(group)) {
+      requestedMode = next;
+      const pending = group.some(kind => opening.has(kind));
+      if (pending) {
+        notice(requirement === 'satellite' ? 'Проверяем сохранённые снимки…' : 'Проверяем сохранённый рельеф…');
+      } else if (dialog.open) {
+        notice(requirement === 'satellite' ? 'Скачай снимки, чтобы включить этот вид карты.' : 'Скачай рельеф и горизонтали для топографической карты.');
+        const control = el('download-' + requirement);
+        if (!control.disabled) control.focus();
+      }
+      return;
+    }
+    mode = next;
+    requestedMode = undefined;
+    notice();
+    paint();
+    render();
+    dialog.close();
+    onModeSelected?.();
+  }
+
   async function load(session) {
     storage = session;
+    for (const kind of kinds) opening.add(kind);
     const packages = await Promise.allSettled(kinds.map(async kind => {
-      const manifest = await layerInfo(kind).catch(() => null);
-      const installed = await session.openInstalledArchive(manifest || kind);
-      const bytes = !manifest ? 0 : installed?.manifest.version === manifest.version ? manifest.bytes :
-        await session.progressOnDisk(manifest);
-      if (storage !== session) return;
-      if (manifest) manifests[kind] = manifest;
-      if (installed) assets[kind] = installed;
-      savedBytes[kind] = bytes;
-      updateAttribution(kind);
-      if (installed) paint();
-      downloadChanged();
+      try {
+        const manifest = await layerInfo(kind).catch(() => null);
+        const installed = await session.openInstalledArchive(manifest || kind);
+        const bytes = !manifest ? 0 : installed?.manifest.version === manifest.version ? manifest.bytes :
+          await session.progressOnDisk(manifest);
+        if (storage !== session) return;
+        if (manifest) manifests[kind] = manifest;
+        if (installed) assets[kind] = installed;
+        savedBytes[kind] = bytes;
+        updateAttribution(kind);
+        if (installed) paint();
+      } finally {
+        if (storage === session) {
+          opening.delete(kind);
+          downloadChanged();
+          const group = groups[groupForMode[requestedMode]];
+          if (group?.includes(kind) && !group.some(member => opening.has(member))) selectMode(requestedMode);
+        }
+      }
     }));
     if (storage !== session) return;
     if (packages.some(result => result.status === 'rejected')) {
@@ -144,6 +178,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
 
   function lock() {
     storage = undefined;
+    opening.clear();
     transfer?.controller.abort();
     for (const kind of kinds) {
       delete assets[kind];
@@ -250,24 +285,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   }
   el('photo-overview').addEventListener('click',() => getMap()?.showImagery());
   for (const button of modes) {
-    button.addEventListener('click',() => {
-      const next = button.dataset.layerMode;
-      const requirement = groupForMode[next];
-      if (requirement && !complete(groups[requirement])) {
-        requestedMode = next;
-        notice(requirement === 'satellite' ? 'Скачай снимки, чтобы включить этот вид карты.' : 'Скачай рельеф и горизонтали для топографической карты.');
-        const control = el('download-' + requirement);
-        if (!control.disabled) control.focus();
-        return;
-      }
-      mode = next;
-      requestedMode = undefined;
-      notice();
-      paint();
-      render();
-      dialog.close();
-      onModeSelected?.();
-    });
+    button.addEventListener('click',() => selectMode(button.dataset.layerMode));
   }
   for (const [name,group] of Object.entries(groups)) {
     el('download-' + name).addEventListener('click',() => void download(group));

@@ -4,7 +4,7 @@
   "format": "webp",
   "tileSize": 256,
   "minZoom": 4,
-  "maxZoom": 11,
+  "maxZoom": 12,
   "bounds": [
     28.326020047160434,
     65.65481035901303,
@@ -16,46 +16,138 @@
   "attribution": "Contains modified Copernicus Sentinel data 2025",
   "licenseUrl": "https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice",
   "sourceGroundResolution": 10,
-  "overviewGroundResolution": 20,
-  "groundResolution": 29,
+  "inputGroundResolution": 10,
+  "inputSampling": "native",
+  "gridGroundResolution": 14,
+  "groundResolution": 14,
   "coverage": {
-    "validPixels": 219103209,
-    "outlinePixels": 219103209,
+    "validPixels": 876273585,
+    "outlinePixels": 876273589,
     "sourceTiles": 39,
     "percent": 100.0
   },
-  "version": "2b458bfc4b88",
-  "bytes": 35278031,
+  "version": "acd00ddab85e",
+  "bytes": 149020693,
   "chunks": [
     {
-      "path": "/data/satellite-2b458bfc4b88-0.bin",
+      "path": "/data/satellite-acd00ddab85e-0.bin",
       "bytes": 6291456,
-      "sha256": "7af0eb3fc476dfea27db5c258208e0b506627624940335b2e6bfdb031bb82b7b"
+      "sha256": "886a3ef0a8b3c598901901bd47f8feb0c504b8a99aeeeae50e9e8162678bf660"
     },
     {
-      "path": "/data/satellite-2b458bfc4b88-1.bin",
+      "path": "/data/satellite-acd00ddab85e-1.bin",
       "bytes": 6291456,
-      "sha256": "a7f351d9892fc7106adaeb0f72c3f050c5de3d124860e5fb09fd879f2c35e77d"
+      "sha256": "a97fa8786101d7c840e9356afd4b545190210753e7c5d9059f8228f50f56657e"
     },
     {
-      "path": "/data/satellite-2b458bfc4b88-2.bin",
+      "path": "/data/satellite-acd00ddab85e-2.bin",
       "bytes": 6291456,
-      "sha256": "322c9a5c6616be51610991745b9a96cd6ed3a6b32b1a802061d8e03cdd486644"
+      "sha256": "f7c066648c7defb216af560de707902b8a2380d1e137cb33f7352a91c052f1ef"
     },
     {
-      "path": "/data/satellite-2b458bfc4b88-3.bin",
+      "path": "/data/satellite-acd00ddab85e-3.bin",
       "bytes": 6291456,
-      "sha256": "24c8bda89bccaf6f50854261d5d01fe1d066295e599b5c988546bc0591011052"
+      "sha256": "a83d17436d66a9a3315be3ea8e946197d02afef6fec93fddfde36f3d3a7d84b0"
     },
     {
-      "path": "/data/satellite-2b458bfc4b88-4.bin",
+      "path": "/data/satellite-acd00ddab85e-4.bin",
       "bytes": 6291456,
-      "sha256": "b12d8dcee30761579c8e5c3dc6912900c340efdad901012eeb827ddbffe45e6e"
+      "sha256": "0cd95c85bdc44553e0c400c9e6f43eb0a736c884997e669da9b97e3b4ea5e9bf"
     },
     {
-      "path": "/data/satellite-2b458bfc4b88-5.bin",
-      "bytes": 3820751,
-      "sha256": "3a8975656323fa549ec151d93b51337572ed5b25aad29702d01e1d1ca91f3390"
+      "path": "/data/satellite-acd00ddab85e-5.bin",
+      "bytes": 6291456,
+      "sha256": "1f1a20aa4fbda395cd7b3735fb2901aa647a4ebc8fff094cb99b71a0d6d184b1"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-6.bin",
+      "bytes": 6291456,
+      "sha256": "b16d837b3d0642ae89df98fffc5ad607e971cc194ac2368a0fbe93e8c7d594d9"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-7.bin",
+      "bytes": 6291456,
+      "sha256": "0f71d600a6432d7c3422584edca6f9176ea2038d5dfd450903bf287f00a74d0f"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-8.bin",
+      "bytes": 6291456,
+      "sha256": "1e0801ab6257dfdaa3a980f994db05800bcb3bc991c86768b5735f286aa7fe03"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-9.bin",
+      "bytes": 6291456,
+      "sha256": "b4b34531c1a5457fcfd8591905766a757a6f4835edc19563213dcf6e4bc3deba"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-10.bin",
+      "bytes": 6291456,
+      "sha256": "920846b9ce163d2712ed227d394a7d0a48c916bac53b9fdc071e99437f1026c2"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-11.bin",
+      "bytes": 6291456,
+      "sha256": "7d003dba8b1accf5b6a8018b8fc32a1074642bdea27275f893546f7cf300a39e"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-12.bin",
+      "bytes": 6291456,
+      "sha256": "ca9998edc8c5a224301662c4c78b2b723f2ec13a5c4ed713514e0f65fa600432"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-13.bin",
+      "bytes": 6291456,
+      "sha256": "a0ca3da34229e27e9223b93968dc7d9ef22ebdc1f4bc1da07952697213c3f60f"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-14.bin",
+      "bytes": 6291456,
+      "sha256": "8b698e181ef705cd545ead1e4241a41a0770ea1eea12fa8e7cf1b8fc5b074401"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-15.bin",
+      "bytes": 6291456,
+      "sha256": "0b9eeecb0940858f9816d723081eb5e5aa14d36031ab7b27125805bca29dad3c"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-16.bin",
+      "bytes": 6291456,
+      "sha256": "b0cab290261b40857182fafb02fda8a8d579522fe97c503681f6eff44e0ba658"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-17.bin",
+      "bytes": 6291456,
+      "sha256": "165190bc3602b1945e628f8391919570f9630378fc311ffdfdf4f7114961611e"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-18.bin",
+      "bytes": 6291456,
+      "sha256": "b2bb5fa38369f92a589598bf1b806b284dc035b04335666ab13054a3cf4d04b9"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-19.bin",
+      "bytes": 6291456,
+      "sha256": "774d19cbfa428b8dec1fe3ce041e5d63df12cfb095a22c73a9b5e49d96feba17"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-20.bin",
+      "bytes": 6291456,
+      "sha256": "44e27c26151111189588f621a42a5501d850379e269f935279a9eddf100ef912"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-21.bin",
+      "bytes": 6291456,
+      "sha256": "19bb3ee18c540475d5b95d1c217d98132b9cb62ff50a6c9c3ea19534aec25843"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-22.bin",
+      "bytes": 6291456,
+      "sha256": "ba488104eeb2b057006bf972567599de8e65daa222c379fa7120732cc2da27e8"
+    },
+    {
+      "path": "/data/satellite-acd00ddab85e-23.bin",
+      "bytes": 4317205,
+      "sha256": "9f95f55e7ef87a465ed39add46a46defdae8cfc9567b1934d0ad43d3f2805d0e"
     }
   ]
 }
