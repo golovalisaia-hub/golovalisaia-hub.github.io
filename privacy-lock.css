@@ -18,6 +18,7 @@ body:has(#privacy-screen:not([hidden])) { background:#141b18; }
 .privacy-link { min-height:42px; border:0; background:none; color:#b6c7bd; padding:4px 0; text-decoration:underline; text-underline-offset:3px; font-size:.84rem; }
 #privacy-status { color:#f7d4ad; margin:4px 0 0; min-height:1.3em; font-size:.84rem; }
 #privacy-status:empty { display:none; }
+#privacy-form:focus { outline:none; }
 .privacy-shell form label { display:grid; gap:7px; margin:0 0 12px; font-size:.9rem; }
 .privacy-shell form input { width:100%; min-width:0; font-size:1rem; padding:9px 10px; border-radius:10px; border:1px solid #637068; min-height:46px; color:#f4f5ef; background:#303a34; }
 .privacy-shell p { line-height:1.48; }
