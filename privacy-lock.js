@@ -1,13 +1,9 @@
 import {isFieldUnlockPin,openFieldSecurity} from './field-security.js';
+import {createCalculator} from './calculator.js';
 
 const id = value => document.getElementById(value);
 const inactivity = 5 * 60 * 1000;
-const operation = {
-  '+':(a,b) => a + b, '-':(a,b) => a - b,
-  '*':(a,b) => a * b, '/':(a,b) => a / b,
-};
 const failure = {
-  'wrong-pin':'Код не подошёл.',
   'invalid-pin':'Код должен содержать от 4 до 20 цифр.',
   'wrong-recovery':'Код восстановления не подошёл.',
   'recovery-unavailable':'Для этих записей код восстановления не задан.',
@@ -24,34 +20,30 @@ export function createPrivacyLock({onUnlock,onLock}) {
   const recoveryCard = id('privacy-recovery-card');
   const workspace = document.querySelector('.workspace');
   const status = id('privacy-status');
+  const math = createCalculator();
+  const clear = calculator.querySelector('[data-key=clear]');
+  const operations = calculator.querySelectorAll('.calc-operation');
   let security;
+  let securityError;
   let configured = false;
   let unlocked = false;
   let busy = false;
   let revision = 0;
   let recovering = false;
   let pendingKey;
+  let nextAttempt;
+  let checking = false;
   let idleTimer;
-  let entry = '';
-  let left;
-  let operator;
-  let replace = false;
+  let hold;
 
   function message(text = '') { status.textContent = text; }
-  function buttons() {
-    id('privacy-setup-open').hidden = !security || configured;
-    id('privacy-recovery-open').hidden = !configured;
-  }
   function display() {
-    id('calculator-display').textContent = !operator && /^\d+$/.test(entry) && configured && !replace ?
-      '•'.repeat(Math.min(entry.length,16)) : entry || '0';
-  }
-  function resetEntry() {
-    entry = '';
-    operator = undefined;
-    left = undefined;
-    replace = false;
-    display();
+    const {value,expression,operator} = math.read();
+    const output = id('calculator-display');
+    output.textContent = value;
+    output.dataset.long = String(value.length > 9);
+    id('calculator-expression').textContent = expression;
+    for (const button of operations) button.dataset.selected = String(button.dataset.key === operator);
   }
   function showCalculator() {
     form.reset();
@@ -60,19 +52,25 @@ export function createPrivacyLock({onUnlock,onLock}) {
     recoveryCard.hidden = true;
     calculator.hidden = false;
     pendingKey = undefined;
-    resetEntry();
-    buttons();
+    math.reset();
+    display();
   }
-  function showForm(forRecovery) {
-    recovering = forRecovery;
+  function showAccessForm() {
+    if (busy || unlocked || calculator.hidden) return;
+    revision += 1;
+    nextAttempt = undefined;
+    recovering = configured;
     calculator.hidden = true;
-    id('privacy-recovery-label').hidden = !forRecovery;
-    id('privacy-recovery').required = forRecovery;
-    id('privacy-form-title').textContent = forRecovery ? 'Восстановление доступа' : 'Код для карт';
-    id('privacy-submit').textContent = forRecovery ? 'Сменить код' : 'Создать код';
+    math.reset();
+    display();
+    id('privacy-recovery-label').hidden = !recovering;
+    id('privacy-recovery').required = recovering;
+    id('privacy-form-title').textContent = recovering ? 'Восстановление доступа' : 'Код для карт';
+    id('privacy-submit').textContent = recovering ? 'Сменить код' : 'Создать код';
     form.hidden = false;
-    message();
-    id(forRecovery ? 'privacy-recovery' : 'privacy-pin').focus();
+    if (securityError) report(securityError);
+    else message();
+    id(recovering ? 'privacy-recovery' : 'privacy-pin').focus();
   }
   function activity() {
     if (!unlocked) return;
@@ -93,6 +91,8 @@ export function createPrivacyLock({onUnlock,onLock}) {
   function lock() {
     revision += 1;
     clearTimeout(idleTimer);
+    clearTimeout(hold);
+    nextAttempt = undefined;
     const wasUnlocked = unlocked;
     unlocked = false;
     for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
@@ -112,73 +112,58 @@ export function createPrivacyLock({onUnlock,onLock}) {
   }
 
   async function tryPin(pin) {
-    if (!security || !configured || busy) return;
-    const current = revision;
-    busy = true;
-    resetEntry();
-    message('Проверяем код…');
+    if (!security || !configured) return;
+    nextAttempt = {pin,revision};
+    if (checking) return;
+    checking = true;
     try {
-      const key = await security.unlock(pin);
-      if (current === revision) unlock(key);
-    } catch (error) {
-      if (current === revision) report(error);
-    } finally {
-      busy = false;
-    }
+      while (nextAttempt) {
+        const attempt = nextAttempt;
+        nextAttempt = undefined;
+        const key = await security.unlock(attempt.pin).catch(() => null);
+        // A normal calculation or a different screen supersedes a previous entry.
+        if (key && attempt.revision === revision && !calculator.hidden) unlock(key);
+      }
+    } finally { checking = false; }
   }
 
-  function calculate() {
-    const result = operation[operator](left,Number(entry || '0'));
-    entry = Number.isFinite(result) ? String(Number(result.toPrecision(11))) : 'Ошибка';
-    operator = undefined;
-    replace = true;
-  }
   function press(key) {
-    if (busy) return;
-    if (key === 'clear') {
-      resetEntry();
-      message();
-      return;
-    }
-    if (key === '=') {
-      if (!operator && !replace && configured && isFieldUnlockPin(entry)) {
-        void tryPin(entry);
-        return;
-      }
-      if (operator) calculate();
-      else replace = true;
-    } else if (Object.hasOwn(operation,key)) {
-      if (operator && entry) calculate();
-      left = Number(entry || '0');
-      if (!Number.isFinite(left)) { resetEntry(); return; }
-      operator = key;
-      entry = '';
-      replace = false;
-    } else if (key === 'backspace') {
-      entry = entry.slice(0,-1);
-    } else if (key === 'percent') {
-      entry = String(Number(entry || '0') / 100);
-      replace = true;
-    } else if (/^[0-9.]$/.test(key)) {
-      if (replace) entry = '';
-      replace = false;
-      if (entry.length < 32 && (key !== '.' || !entry.includes('.'))) entry += key;
-    }
+    if (unlocked || calculator.hidden) return;
+    revision += 1;
+    nextAttempt = undefined;
+    const candidate = math.press(key);
     display();
+    if (isFieldUnlockPin(candidate)) void tryPin(candidate);
   }
 
   workspace.inert = true;
+  const configuration = openFieldSecurity().then(async stored => {
+    configured = await stored.configured();
+    security = stored;
+  }).catch(error => { securityError = error; });
   for (const button of calculator.querySelectorAll('[data-key]')) {
     button.addEventListener('click',() => press(button.dataset.key));
   }
+  clear.addEventListener('pointerdown',event => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    hold = setTimeout(() => void configuration.then(showAccessForm),850);
+  });
+  for (const event of ['pointerup','pointerleave','pointercancel','lostpointercapture']) {
+    clear.addEventListener(event,() => clearTimeout(hold));
+  }
+  clear.addEventListener('contextmenu',event => event.preventDefault());
   document.addEventListener('keydown',event => {
-    if (unlocked || calculator.hidden || event.altKey || event.metaKey || event.ctrlKey) return;
-    if (event.key === 'Enter' && event.target?.matches?.('button')) {
-      if (!event.target.matches('[data-key]')) return;
+    if (unlocked || calculator.hidden || event.metaKey || event.ctrlKey) return;
+    if (event.altKey) {
+      if (event.key === 'Backspace') {
+        event.preventDefault();
+        void configuration.then(showAccessForm);
+      }
+      return;
     }
     const keys = {Enter:'=',Escape:'clear',Backspace:'backspace','%':'percent'};
     const key = keys[event.key] || event.key;
-    if (/^[\d.+*/=\-]$/.test(key) || Object.hasOwn(keys,event.key)) {
+    if (/^[\d.,+*/=\-]$/.test(key) || Object.hasOwn(keys,event.key)) {
       event.preventDefault();
       press(key);
     }
@@ -186,8 +171,6 @@ export function createPrivacyLock({onUnlock,onLock}) {
   for (const event of ['pointerdown','keydown','touchstart']) {
     document.addEventListener(event,activity,{passive:true});
   }
-  id('privacy-setup-open').addEventListener('click',() => showForm(false));
-  id('privacy-recovery-open').addEventListener('click',() => showForm(true));
   id('privacy-cancel').addEventListener('click',() => { if (!busy) { showCalculator(); message(); } });
   id('privacy-enter').addEventListener('click',() => { if (pendingKey) unlock(pendingKey); });
   id('privacy-copy-recovery').addEventListener('click',async () => {
@@ -218,7 +201,6 @@ export function createPrivacyLock({onUnlock,onLock}) {
       }
       const {key,recoveryCode} = await security.setup(pin);
       configured = true;
-      buttons();
       if (current !== revision) return;
       form.reset();
       form.hidden = true;
@@ -234,12 +216,5 @@ export function createPrivacyLock({onUnlock,onLock}) {
       id('privacy-submit').disabled = false;
     }
   });
-  void openFieldSecurity().then(async stored => {
-    configured = await stored.configured();
-    security = stored;
-    buttons();
-    message();
-  }).catch(report);
-
   return {lock,activity,isUnlocked:() => unlocked};
 }

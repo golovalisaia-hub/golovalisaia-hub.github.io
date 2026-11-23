@@ -34,7 +34,8 @@ export function createNavigationClient(archive,profile = 'car') {
   });
   worker.addEventListener('error', () => dispose(new Error('Не удалось открыть офлайн-навигацию.')));
 
-  const ready = request('initialize',{archive,profile});
+  const content = archive instanceof Blob ? Promise.resolve(archive) : archive.toBlob();
+  const ready = content.then(blob => request('initialize',{archive:blob,profile}));
   return {
     async search(query) { await ready; return request('search',query); },
     async route(start,goal) { await ready; return request('route',{start,goal}); },

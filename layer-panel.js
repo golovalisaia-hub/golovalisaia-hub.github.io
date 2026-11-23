@@ -1,4 +1,4 @@
-import {layerInfo,openInstalledArchive,saveArchive,removeArchive,progressOnDisk,checkStorage} from './region-storage.js';
+import {layerInfo,checkStorage} from './region-storage.js';
 
 const groups = {details:['detail','forest','field-ways'],topography:['terrain','contours'],satellite:['satellite']};
 const groupForMode = {satellite:'satellite',hybrid:'satellite',topographic:'topography'};
@@ -18,6 +18,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   let transfer;
   let removing = false;
   let loaded = false;
+  let storage;
 
   function notice(message = '',error = false) {
     const status = el('layer-notice');
@@ -102,18 +103,44 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
     getMap()?.updateLayers(assets,{mode,forest:el('show-forest').checked});
   }
 
-  async function load() {
-    await Promise.allSettled(kinds.map(async kind => {
+  async function load(session) {
+    storage = session;
+    const packages = await Promise.allSettled(kinds.map(async kind => {
       const manifest = await layerInfo(kind).catch(() => null);
-      if (manifest) manifests[kind] = manifest;
-      const installed = await openInstalledArchive(manifest || kind);
-      if (installed) assets[kind] = installed;
-      savedBytes[kind] = !manifest ? 0 : current(kind) ? manifest.bytes : await progressOnDisk(manifest);
-      updateAttribution(kind);
+      const installed = await session.openInstalledArchive(manifest || kind);
+      const bytes = !manifest ? 0 : installed?.manifest.version === manifest.version ? manifest.bytes :
+        await session.progressOnDisk(manifest);
+      return {kind,manifest,installed,bytes};
     }));
+    if (storage !== session) return;
+    for (const result of packages) {
+      if (result.status === 'rejected') continue;
+      const {kind,manifest,installed,bytes} = result.value;
+      if (manifest) manifests[kind] = manifest;
+      if (installed) assets[kind] = installed;
+      savedBytes[kind] = bytes;
+      updateAttribution(kind);
+    }
+    if (packages.some(result => result.status === 'rejected')) {
+      notice('Часть защищённых слоёв не открылась. Проверь свободное место и снова открой карты.',true);
+    }
     loaded = true;
     paint();
     downloadChanged();
+  }
+
+  function lock() {
+    storage = undefined;
+    transfer?.controller.abort();
+    for (const kind of kinds) {
+      delete assets[kind];
+      delete manifests[kind];
+      delete savedBytes[kind];
+    }
+    loaded = false;
+    mode = 'map';
+    requestedMode = undefined;
+    notice();
   }
 
   function updateAttribution(kind) {
@@ -129,7 +156,8 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   }
 
   async function download(group) {
-    if (!isReady() || transfer || removing || isBaseDownloading() || !available(group)) return;
+    const session = storage;
+    if (!session || !isReady() || transfer || removing || isBaseDownloading() || !available(group)) return;
     if (!navigator.onLine) {
       notice('Подключись к интернету, чтобы скачать слой.',true);
       return;
@@ -146,10 +174,11 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       for (const kind of group) {
         if (current(kind)) continue;
         const manifest = manifests[kind];
-        const archive = await saveArchive(manifest,{
+        const archive = await session.saveArchive(manifest,{
           signal:controller.signal,
           onProgress(bytes) { savedBytes[kind] = bytes; render(); },
         });
+        controller.signal.throwIfAborted();
         assets[kind] = {archive,manifest};
         updateAttribution(kind);
       }
@@ -159,9 +188,11 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
       }
       notice('Слой доступен без интернета.');
     } catch (error) {
+      if (storage !== session) return;
       notice(controller.signal.aborted ? 'Загрузка на паузе. Скачанные части сохранены.' : error.message,!controller.signal.aborted);
       await Promise.all(group.map(async kind => {
-        savedBytes[kind] = await progressOnDisk(manifests[kind]).catch(() => 0);
+        const bytes = await session.progressOnDisk(manifests[kind]).catch(() => 0);
+        if (storage === session) savedBytes[kind] = bytes;
       }));
     } finally {
       transfer = undefined;
@@ -171,8 +202,11 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   }
 
   async function clearGroup(group) {
+    const session = storage;
+    if (!session) return;
     for (const kind of group) {
-      await removeArchive(manifests[kind] || kind);
+      await session.removeArchive(manifests[kind] || kind);
+      if (storage !== session) return;
       delete assets[kind];
       delete savedBytes[kind];
     }
@@ -230,7 +264,7 @@ export function createLayerPanel({getMap,isReady,isBaseDownloading,downloadChang
   el('show-forest').addEventListener('change',() => { paint(); render(); });
 
   return {
-    load,paint,render,vectorParts,vectorState,clearVector:() => clearGroup(groups.details),
+    load,lock,paint,render,vectorParts,vectorState,clearVector:() => clearGroup(groups.details),
     hasDetail:() => Boolean(assets.detail),isBusy:() => Boolean(transfer || removing),
   };
 }

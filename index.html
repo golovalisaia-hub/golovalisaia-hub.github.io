@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#182e28">
-  <meta name="description" content="Офлайн-карта и навигация по Мурманской области с зашифрованным фотосейфом.">
+  <meta name="theme-color" content="#141b18">
+  <meta name="description" content="Калькулятор для повседневных вычислений.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Тихие карты</title>
-  <link rel="icon" href="/icons/app-192.png">
-  <link rel="apple-touch-icon" href="/icons/app-180.png">
+  <title>Калькулятор</title>
+  <link rel="icon" href="/icons/calculator-192.png">
+  <link rel="apple-touch-icon" href="/icons/calculator-192.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/vendor/maplibre-gl.css">
   <link rel="stylesheet" href="/app.css">
@@ -24,7 +24,10 @@
     <div class="privacy-shell">
       <div id="calculator">
         <h1>Калькулятор</h1>
-        <output id="calculator-display">0</output>
+        <div class="calculator-result">
+          <div id="calculator-expression" aria-hidden="true"></div>
+          <output id="calculator-display" aria-label="Результат">0</output>
+        </div>
         <div class="calculator-keys" aria-label="Клавиши калькулятора">
           <button type="button" data-key="clear" class="calc-function">AC</button>
           <button type="button" data-key="backspace" class="calc-function" aria-label="Стереть последнюю цифру">⌫</button>
@@ -36,15 +39,14 @@
           <button type="button" data-key="-" class="calc-operation" aria-label="Вычесть">−</button>
           <button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
           <button type="button" data-key="+" class="calc-operation" aria-label="Сложить">+</button>
-          <button type="button" data-key="0" class="calc-zero">0</button><button type="button" data-key=".">.</button>
+          <button type="button" data-key="sign" class="calc-function" aria-label="Сменить знак">±</button>
+          <button type="button" data-key="0">0</button><button type="button" data-key="." aria-label="Десятичная запятая">,</button>
           <button type="button" data-key="=" class="calc-operation">=</button>
         </div>
-        <button id="privacy-setup-open" class="privacy-link" type="button" hidden>Настроить доступ</button>
-        <button id="privacy-recovery-open" class="privacy-link" type="button" hidden>Восстановить доступ</button>
       </div>
       <form id="privacy-form" hidden>
         <h1 id="privacy-form-title">Код для карт</h1>
-        <p>Задай код из 4–20 цифр для карт и зашифрованных полевых записей.</p>
+        <p>Выбери код из 4–20 цифр для скачанных карт и полевых записей. Длинный случайный код лучше защищает данные.</p>
         <label id="privacy-recovery-label" hidden>Код восстановления<input id="privacy-recovery" type="password" autocomplete="off" spellcheck="false"></label>
         <label>Новый код<input id="privacy-pin" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
         <label>Повтори код<input id="privacy-pin-confirm" type="password" inputmode="numeric" minlength="4" maxlength="20" autocomplete="new-password" required></label>
@@ -363,6 +365,7 @@
   <dialog id="help-dialog" aria-labelledby="help-title">
     <div class="dialog-title"><h2 id="help-title">Установка и приватность</h2><button class="icon-button close-dialog" type="button" aria-label="Закрыть">×</button></div>
     <p>В Safari нажми «Поделиться», затем «На экран „Домой“» и «Добавить». Запусти приложение с иконки и скачай всю область там.</p>
+    <p>Для входа набери свой код на калькуляторе и нажми «=». Для восстановления доступа удерживай AC и введи сохранённый код восстановления.</p>
     <p>После скачивания введи город, улицу и номер дома или поставь финиш на карте. Нажми «Маршрут от меня» и дай доступ к GPS. Адрес, координаты и маршрут остаются в памяти устройства.</p>
     <p>Перед походом открой «Мой путь», скачай пешие маршруты и проверь карту в авиарежиме. На схеме и гибриде нанесённые тропы показаны штрихами. Начни запись у места, к которому хочешь вернуться.</p>
     <p>Для поиска по координатам введи широту и долготу через запятую, например 68.97070, 33.08270.</p>

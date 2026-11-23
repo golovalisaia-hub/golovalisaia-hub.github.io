@@ -17,14 +17,15 @@ function checkAbort(signal) {
 
 function archiveReader(archive, token) {
   const blob = archive instanceof ArrayBuffer ? new Blob([archive]) : archive;
-  if (!(blob instanceof Blob) || blob.size < 127) {
+  if ((!blob?.getBytes && !(blob instanceof Blob)) || blob.size < 127) {
     throw new Error('Локальный архив карты недоступен.');
   }
   return new PMTiles({
     getKey: () => token,
     async getBytes(offset, length, signal) {
       checkAbort(signal);
-      const data = await blob.slice(offset, offset + length).arrayBuffer();
+      const data = blob instanceof Blob ? await blob.slice(offset, offset + length).arrayBuffer() :
+        await blob.getBytes(offset,length,signal);
       checkAbort(signal);
       return { data };
     }

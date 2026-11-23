@@ -73,6 +73,8 @@ async function openBytes(key, binding, envelope) {
   return new Uint8Array(await crypto.subtle.decrypt(gcm(envelope.iv, binding), key, envelope.ciphertext));
 }
 
+export {openBytes as openFieldBytes, sealBytes as sealFieldBytes};
+
 export async function sealFieldValue(key, binding, value) {
   const json = JSON.stringify(value);
   if (typeof json !== 'string') throw fieldError('invalid-record');

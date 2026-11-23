@@ -1,5 +1,5 @@
 import {createMap} from './map-engine.js';
-import {regionInfo,navigationInfo,walkingInfo,openInstalledArchive,saveArchive,removeArchive,progressOnDisk,checkStorage} from './region-storage.js';
+import {regionInfo,navigationInfo,walkingInfo,createMapStorage,checkStorage} from './region-storage.js';
 import {hasHouseNumber} from './address-search.js';
 import {createNavigationUI} from './navigation-ui.js';
 import {createLayerPanel} from './layer-panel.js';
@@ -68,6 +68,7 @@ let shellTimer;
 let registeringShell = false;
 let preview;
 let map;
+let mapStorage;
 let mapRendered = false;
 let mapFailed = false;
 let storageFailed = false;
@@ -100,7 +101,7 @@ const navigation = createNavigationUI({
 });
 const layerPanel = createLayerPanel({
   getMap:() => map,
-  isReady:() => offlineReady,
+  isReady:() => Boolean(offlineReady && mapStorage),
   isBaseDownloading:() => Boolean(download || removingDownload),
   downloadChanged:renderDownload,
 });
@@ -173,11 +174,14 @@ const privacy = createPrivacyLock({
     void trackPanel.unlock(key);
     void fieldPanel.unlock(key);
     void forestry.unlock(key);
-    if (map) map.resize();
-    else if (data) drawMap();
+    void loadMaps(key);
     safety.offerIntro();
   },
   onLock() {
+    mapStorage?.close();
+    mapStorage = undefined;
+    download?.controller.abort();
+    layerPanel.lock();
     clearPrivateSession();
     trackPanel.lock();
     fieldPanel.lock();
@@ -190,7 +194,23 @@ const privacy = createPrivacyLock({
     mapRevision += 1;
     map?.destroy();
     map = null;
+    preview = undefined;
+    cachedArchive = undefined;
+    cachedManifest = undefined;
+    navigationArchive = undefined;
+    navigationManifest = undefined;
+    navigationData = undefined;
+    walkingArchive = undefined;
+    walkingManifest = undefined;
+    walkingData = undefined;
+    data = undefined;
+    geography = undefined;
+    indexedPlaces = [];
+    diskBytes = 0;
+    navigationBytes = 0;
+    walkingBytes = 0;
     mapRendered = false;
+    renderDownload();
   },
 });
 
@@ -716,7 +736,6 @@ async function readShellController() {
   offlineReady = true;
   setShellNotice();
   renderDownload();
-  void layerPanel.load();
 }
 
 async function prepareShell() {
@@ -763,8 +782,9 @@ async function prepareShell() {
 }
 
 async function beginDownload(walking = false, requireDetail = true) {
+  const storage = mapStorage;
   const parts = pendingParts(walking);
-  if (!data || !offlineReady || download || removingDownload || layerPanel.isBusy() ||
+  if (!storage || !data || !offlineReady || download || removingDownload || layerPanel.isBusy() ||
       (requireDetail && !layerPanel.vectorState().available && !layerPanel.vectorState().ready) ||
       (walking && !walkingData) || !parts.length) return;
   if (!navigator.onLine) {
@@ -780,13 +800,14 @@ async function beginDownload(walking = false, requireDetail = true) {
   try {
     await checkStorage(download.expected - parts.reduce((sum,part) => sum + part.saved(),0));
     for (const part of parts) {
-      const savedArchive = await saveArchive(part.manifest, {
+      const savedArchive = await storage.saveArchive(part.manifest, {
         signal:current.signal,
         onProgress(bytes) {
           part.progress(bytes);
           renderDownload();
         },
       });
+      current.signal.throwIfAborted();
       part.installed(savedArchive);
     }
     setNotice(!layerPanel.vectorState().ready ? 'Файлы сохранены. Полная детализация ещё не скачана.' :
@@ -794,8 +815,12 @@ async function beginDownload(walking = false, requireDetail = true) {
       navigationArchive ? 'Карта и маршруты теперь доступны офлайн.' : 'Карта сохранена на устройстве.');
     storageFailed = false;
   } catch (error) {
+    if (storage !== mapStorage) return;
     setNotice(current.signal.aborted ? 'Загрузка на паузе. Скачанные части сохранены.' : error.message, !current.signal.aborted);
-    await Promise.all(parts.map(async part => part.progress(await progressOnDisk(part.manifest).catch(() => 0))));
+    await Promise.all(parts.map(async part => {
+      const bytes = await storage.progressOnDisk(part.manifest).catch(() => 0);
+      if (storage === mapStorage) part.progress(bytes);
+    }));
   } finally {
     download = null;
     renderDownload();
@@ -818,30 +843,35 @@ el('pause-download').addEventListener('click', () => {
 el('delete-region').addEventListener('click', () => el('delete-dialog').showModal());
 el('confirm-delete').addEventListener('click', async () => {
   el('delete-dialog').close();
-  if (download || removingDownload || layerPanel.isBusy()) return;
+  const storage = mapStorage;
+  if (!storage || download || removingDownload || layerPanel.isBusy()) return;
   removingDownload = true;
   renderDownload();
   try {
-    await removeArchive(data || 'map');
+    await storage.removeArchive(data || 'map');
+    if (storage !== mapStorage) return;
     cachedArchive = null;
     cachedManifest = null;
     diskBytes = 0;
     await layerPanel.clearVector();
+    if (storage !== mapStorage) return;
     if (navigationData || navigationArchive) {
-      await removeArchive(navigationData || 'navigation');
+      await storage.removeArchive(navigationData || 'navigation');
+      if (storage !== mapStorage) return;
       navigationArchive = null;
       navigationManifest = null;
       navigationBytes = 0;
     }
     if (walkingData || walkingArchive) {
-      await removeArchive(walkingData || 'walking');
+      await storage.removeArchive(walkingData || 'walking');
+      if (storage !== mapStorage) return;
       walkingArchive = null;
       walkingManifest = null;
       walkingBytes = 0;
     }
     setNotice('Скачанная карта удалена с устройства.');
   } catch {
-    setNotice('Не удалось удалить карту. Попробуй ещё раз.', true);
+    if (storage === mapStorage) setNotice('Не удалось удалить карту. Попробуй ещё раз.', true);
   } finally {
     removingDownload = false;
     if (!cachedArchive) {
@@ -904,8 +934,11 @@ function clearPrivateSession() {
   navigation.hide();
   focusPlace = undefined;
   search.value = '';
+  searchRevision += 1;
+  results.replaceChildren();
+  sheet(false);
+  setNotice();
   for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
-  void renderPlaces();
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) privacy.lock(); });
 window.addEventListener('pagehide', privacy.lock);
@@ -938,51 +971,64 @@ function buildSearchIndex() {
   }
 }
 
-async function openPackage(kind,target) {
+async function openPackage(storage,kind,target) {
   try {
-    const installed = await openInstalledArchive(target || kind);
-    const bytes = target ? atVersion(target,installed?.manifest) ? target.bytes : await progressOnDisk(target) :
+    const installed = await storage.openInstalledArchive(target || kind);
+    const bytes = target ? atVersion(target,installed?.manifest) ? target.bytes : await storage.progressOnDisk(target) :
       installed?.manifest.bytes || 0;
-    return {installed,bytes};
+    return {installed,bytes,failed:false};
   } catch {
-    storageFailed = true;
-    return {installed:null,bytes:0};
+    return {installed:null,bytes:0,failed:true};
   }
 }
 
-try {
-  [data,preview,navigationData,walkingData,geography] = await Promise.all([
-    regionInfo().catch(() => null),
-    fetch('/data/preview.pmtiles', {redirect:'error'}).then(response => {
-      return response.ok ? response.blob() : null;
-    }).catch(() => null),
-    navigationInfo().catch(() => null),
-    walkingInfo().catch(() => null),
-    fetch('/data/field-geography.json',{redirect:'error'}).then(response => response.ok ? response.json() : null).catch(() => null),
-  ]);
-  const [base,car,walk] = await Promise.all([
-    openPackage('map',data),openPackage('navigation',navigationData),openPackage('walking',walkingData),
-  ]);
-  cachedArchive = base.installed?.archive;
-  cachedManifest = base.installed?.manifest;
-  navigationArchive = car.installed?.archive;
-  navigationManifest = car.installed?.manifest;
-  walkingArchive = walk.installed?.archive;
-  walkingManifest = walk.installed?.manifest;
-  diskBytes = base.bytes;
-  navigationBytes = car.bytes;
-  walkingBytes = walk.bytes;
-  data ||= cachedManifest;
-  if (storageFailed) setNotice('Часть хранилища недоступна. Подробности в «Безопасности».',true);
-  if (!geography) setNotice('Граница области и расширенный указатель недоступны. Запись новых мест приостановлена.',true);
-  if (!data) {
-    mapFailed = true;
-    el('map-loading').textContent = 'Не удалось прочитать описание региона. Открой приложение с интернетом.';
+async function loadMaps(key) {
+  const storage = createMapStorage(key);
+  mapStorage = storage;
+  el('map-loading').hidden = false;
+  el('map-loading').textContent = 'Открываем карту…';
+  try {
+    const [region,overview,carData,walkData,boundary] = await Promise.all([
+      regionInfo().catch(() => null),
+      fetch('/data/preview.pmtiles', {redirect:'error'}).then(response => {
+        return response.ok ? response.blob() : null;
+      }).catch(() => null),
+      navigationInfo().catch(() => null),
+      walkingInfo().catch(() => null),
+      fetch('/data/field-geography.json',{redirect:'error'}).then(response => response.ok ? response.json() : null).catch(() => null),
+    ]);
+    if (storage !== mapStorage) return;
+    const [base,car,walk] = await Promise.all([
+      openPackage(storage,'map',region),openPackage(storage,'navigation',carData),openPackage(storage,'walking',walkData),
+    ]);
+    if (storage !== mapStorage) return;
+    cachedArchive = base.installed?.archive;
+    cachedManifest = base.installed?.manifest;
+    navigationArchive = car.installed?.archive;
+    navigationManifest = car.installed?.manifest;
+    walkingArchive = walk.installed?.archive;
+    walkingManifest = walk.installed?.manifest;
+    diskBytes = base.bytes;
+    navigationBytes = car.bytes;
+    walkingBytes = walk.bytes;
+    data = region || cachedManifest;
+    preview = overview;
+    navigationData = carData;
+    walkingData = walkData;
+    geography = boundary;
+    storageFailed = base.failed || car.failed || walk.failed;
+    if (storageFailed) setNotice('Часть защищённых пакетов не открылась. Проверь свободное место и снова открой карты.',true);
+    if (!geography) setNotice('Граница области и расширенный указатель недоступны. Запись новых мест приостановлена.',true);
+    if (!data) {
+      mapFailed = true;
+      el('map-loading').textContent = 'Не удалось прочитать описание региона. Открой приложение с интернетом.';
+    }
+    buildSearchIndex();
+    void renderPlaces();
+    renderDownload();
+    if (data) drawMap();
+    await layerPanel.load(storage);
+  } catch {
+    if (storage === mapStorage) el('map-loading').textContent = 'Не удалось открыть карту.';
   }
-  buildSearchIndex();
-  void renderPlaces();
-  renderDownload();
-  if (privacy.isUnlocked() && data && !map) drawMap();
-} catch (error) {
-  el('map-loading').textContent = error.message;
 }

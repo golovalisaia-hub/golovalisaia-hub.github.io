@@ -1,4 +1,5 @@
 import {PMTiles, TileType} from '/vendor/pmtiles.js';
+import {createArchiveProtection,sealedSize} from './archive-protection.js';
 
 const filePrefixes = {
   map:'region',navigation:'navigation',walking:'walking',detail:'detail',
@@ -12,6 +13,7 @@ const regionalProbes = [[33.08422,68.97243],[33.65,67.68],[35.1221,69.1788],[32.
 const maxChunkSize = 12 * 1024 * 1024;
 const versionPattern = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}$/;
 const digestHeader = 'X-Quiet-Digest';
+const formatHeader = 'X-Quiet-Archive';
 const activationPath = '/.quiet-map-package';
 const cachePrefix = kind => 'quiet-' + (kind === 'map' ? 'murmansk' : kind) + '-';
 const cacheName = ({kind,version}) => cachePrefix(kind) + version;
@@ -102,17 +104,38 @@ async function storedPart(cache,chunk) {
   const saved = await cache.match(key(chunk.path));
   if (!saved || saved.headers.get(digestHeader) !== chunk.sha256) return null;
   const blob = await saved.blob();
-  return blob.size === chunk.bytes ? blob : null;
+  const format = saved.headers.get(formatHeader);
+  if (format === '1' && blob.size === sealedSize(chunk.bytes)) return {blob,sealed:true};
+  return format === null && blob.size === chunk.bytes ? {blob,sealed:false} : null;
 }
 
-async function inspectParts(cache,manifest) {
+async function storeProtected(cache,chunk,bytes,protection) {
+  const sealed = await protection.seal(chunk,bytes);
+  await cache.put(key(chunk.path),new Response(sealed,{
+    headers:{'Content-Type':'application/octet-stream',[digestHeader]:chunk.sha256,[formatHeader]:'1'},
+  }));
+  const stored = await storedPart(cache,chunk);
+  if (!stored?.sealed) throw new Error('Часть карты исчезла из хранилища. Продолжи скачивание.');
+  return stored.blob;
+}
+
+async function inspectParts(cache,manifest,protection) {
   const parts = [];
   let bytes = 0;
   for (const chunk of manifest.chunks) {
-    const blob = await storedPart(cache,chunk);
-    const valid = blob && await hasDigest(await blob.arrayBuffer(),chunk.sha256);
-    parts.push(valid ? blob : null);
-    if (valid) bytes += blob.size;
+    protection.signal.throwIfAborted();
+    const stored = await storedPart(cache,chunk);
+    const data = !stored ? null : stored.sealed ?
+      await protection.readPart(stored.blob,chunk).catch(() => null) :
+      new Uint8Array(await stored.blob.arrayBuffer());
+    protection.signal.throwIfAborted();
+    if (!data || !await hasDigest(data,chunk.sha256)) {
+      parts.push(null);
+      continue;
+    }
+    // Legacy files are checked against the original manifest before replacement.
+    parts.push(stored.sealed ? stored.blob : await storeProtected(cache,chunk,data,protection));
+    bytes += chunk.bytes;
   }
   return {parts,bytes};
 }
@@ -140,7 +163,7 @@ async function readMapSamples(archive,manifest,signal) {
       if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(length) || offset < 0 ||
           length <= 0 || length > maxChunkSize ||
           (offset + length > archive.size && !(offset === 0 && length === 16384))) throw invalidArchive();
-      return {data:await archive.slice(offset,offset + length).arrayBuffer()};
+      return {data:await archive.getBytes(offset,length,signal)};
     },
   });
   const header = await reader.getHeader();
@@ -187,24 +210,24 @@ async function validateArchive(archive,manifest,signal) {
   }
 }
 
-async function openVerified(cache,manifest,adopt) {
-  const {parts,bytes} = await inspectParts(cache,manifest);
+async function openVerified(cache,manifest,adopt,protection) {
+  const {parts,bytes} = await inspectParts(cache,manifest,protection);
   if (bytes !== manifest.bytes) return null;
-  const archive = new Blob(parts,{type:'application/octet-stream'});
-  try { await validateArchive(archive,manifest); }
-  catch { return null; }
+  const archive = protection.archive(parts,manifest);
+  try { await validateArchive(archive,manifest,protection.signal); }
+  catch { protection.signal.throwIfAborted(); return null; }
   if (adopt) await activate(cache,manifest);
   return archive;
 }
 
-export async function openArchive(input) {
+async function openArchive(input,protection) {
   const manifest = verifyManifest(input,input?.kind);
   const name = cacheName(manifest);
   if (!await caches.has(name)) return null;
   const cache = await caches.open(name);
   const record = await activated(cache,manifest.kind);
   if (record && !samePackage(record.manifest,manifest)) return null;
-  return openVerified(cache,manifest,!record);
+  return openVerified(cache,manifest,!record,protection);
 }
 
 async function packageNames(kind) {
@@ -213,11 +236,11 @@ async function packageNames(kind) {
   return (await caches.keys()).filter(name => name.startsWith(prefix) && versionPattern.test(name.slice(prefix.length)));
 }
 
-export async function openInstalledArchive(input) {
+async function openInstalledArchive(input,protection) {
   const current = typeof input === 'string' ? null : verifyManifest(input,input?.kind);
   const kind = current?.kind || input;
   if (current) {
-    const archive = await openArchive(current);
+    const archive = await openArchive(current,protection);
     if (archive) return {archive,manifest:current};
   }
   const fallbacks = [];
@@ -230,19 +253,19 @@ export async function openInstalledArchive(input) {
   }
   fallbacks.sort((a,b) => b.at - a.at);
   for (const {cache,manifest} of fallbacks) {
-    const archive = await openVerified(cache,manifest,false);
+    const archive = await openVerified(cache,manifest,false,protection);
     if (archive) return {archive,manifest};
   }
   return null;
 }
 
-export async function progressOnDisk(input) {
+async function progressOnDisk(input,protection) {
   const manifest = verifyManifest(input,input?.kind);
   const name = cacheName(manifest);
   if (!await caches.has(name)) return 0;
   const cache = await caches.open(name);
   const record = await activated(cache,manifest.kind);
-  return record && !samePackage(manifest,record.manifest) ? 0 : (await inspectParts(cache,manifest)).bytes;
+  return record && !samePackage(manifest,record.manifest) ? 0 : (await inspectParts(cache,manifest,protection)).bytes;
 }
 
 let inThisTab = false;
@@ -291,31 +314,27 @@ async function fetchPart(chunk,signal) {
   return bytes;
 }
 
-export function saveArchive(input,{signal,onProgress} = {}) {
+function saveArchive(input,protection,{signal:request,onProgress} = {}) {
+  const signal = request ? AbortSignal.any([protection.signal,request]) : protection.signal;
   return exclusively(async () => {
     signal?.throwIfAborted();
     const manifest = verifyManifest(input,input?.kind);
     const cache = await caches.open(cacheName(manifest));
     const record = await activated(cache,manifest.kind);
     if (record && !samePackage(manifest,record.manifest)) throw invalidManifest();
-    const {parts,bytes} = await inspectParts(cache,manifest);
+    const {parts,bytes} = await inspectParts(cache,manifest,protection);
     let savedBytes = bytes;
     onProgress?.(savedBytes,manifest.bytes);
     for (const [index,chunk] of manifest.chunks.entries()) {
       signal?.throwIfAborted();
       if (parts[index]) continue;
       const data = await fetchPart(chunk,signal);
-      await cache.put(key(chunk.path),new Response(data,{
-        headers:{'Content-Type':'application/octet-stream',[digestHeader]:chunk.sha256},
-      }));
-      const stored = await storedPart(cache,chunk);
-      if (!stored) throw new Error('Часть карты исчезла из хранилища. Продолжи скачивание.');
-      parts[index] = stored;
-      savedBytes += stored.size;
+      parts[index] = await storeProtected(cache,chunk,data,protection);
+      savedBytes += chunk.bytes;
       onProgress?.(savedBytes,manifest.bytes);
     }
     signal?.throwIfAborted();
-    const archive = new Blob(parts,{type:'application/octet-stream'});
+    const archive = protection.archive(parts,manifest);
     await validateArchive(archive,manifest,signal);
     await activate(cache,manifest);
     return archive;
@@ -325,9 +344,21 @@ export function saveArchive(input,{signal,onProgress} = {}) {
   });
 }
 
-export async function removeArchive(input) {
+async function removeArchive(input) {
   const kind = typeof input === 'string' ? input : input?.kind;
   return exclusively(async () => (await Promise.all((await packageNames(kind)).map(name => caches.delete(name)))).some(Boolean));
+}
+
+export function createMapStorage(fieldKey) {
+  const protection = createArchiveProtection(fieldKey);
+  return {
+    close:protection.close,
+    async openArchive(input) { await protection.verify(); return openArchive(input,protection); },
+    async openInstalledArchive(input) { await protection.verify(); return openInstalledArchive(input,protection); },
+    async progressOnDisk(input) { await protection.verify(); return progressOnDisk(input,protection); },
+    async saveArchive(input,options) { await protection.verify(); return saveArchive(input,protection,options); },
+    async removeArchive(input) { await protection.verify(); return removeArchive(input); },
+  };
 }
 
 async function readManifest(url,kind) {
